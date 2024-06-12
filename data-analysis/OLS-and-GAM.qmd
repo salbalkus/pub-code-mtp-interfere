@@ -10,20 +10,37 @@ library(tidyverse)
 library(mgcv)
 library(stargazer)
 
-df = read_csv(here("data", "NO2_ZEV_ZCTAs.csv")) %>% select(-ZCTA)
-net = read_csv(here("data", "ZEV_commuters.csv"))
+df_raw = read_csv(here("data", "NO2_ZEV_ZCTAs.csv"))
+df = df_raw %>% select(-ZCTA)
 ```
 
-## Table 1
+## Table 1 with Summarized Data
+
+First, we add treatment summaries to the dataframe.
 
 ```{r}
-tbl = stargazer(as.data.frame(df))
+net = read_csv(here("data", "ZEV_commuters.csv"))
+
+sum_df = net %>% 
+  left_join(df_raw, by = join_by(h_zcta == ZCTA)) %>% 
+  group_by(w_zcta) %>% 
+  summarize(ZEV_sum = sum(ZEV_pct_change * weight))
+
+df2 = df_raw %>% 
+  left_join(sum_df, by = join_by(ZCTA == w_zcta)) %>% 
+  select(-ZCTA) %>%
+  mutate(ZEV_sum = replace_na(ZEV_sum, 0))
+```
+
+Create a LaTeX version of the data frame:
+
+```{r}
+tbl = stargazer(as.data.frame(df2))
 ```
 
 ## Associational Model
 
 ```{r}
-
 model_ols = lm(no2_change ~ ., data = df)
 summary(model_ols)
 
@@ -38,5 +55,24 @@ model_gam = gam(no2_change ~ ZEV_pct_change + s(pop) + s(medin_g) +
                              s(D3A) + s(D4C) + s(NtWlkIn), data = df)
 
 summary(model_gam)
+
+```
+
+## Associational Models with Summarized Treatment
+
+```{r}
+model_ols_sum = lm(no2_change ~ ., data = df2)
+summary(model_ols_sum)
+```
+
+```{r}
+
+model_gam_sum = gam(no2_change ~ ZEV_pct_change + ZEV_sum + s(pop) + s(medin_g) + 
+                             s(pct_cll) + s(pct_wht) + s(mdn_ncm) + 
+                             s(pct_wn_) + s(mdn_hm_) + s(pct_aut) +
+                             s(pct_pb_) + s(pct_wfh) + s(D1C5_IN) + 
+                             s(D3A) + s(D4C) + s(NtWlkIn), data = df2)
+
+summary(model_gam_sum)
 
 ```
