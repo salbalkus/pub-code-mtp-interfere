@@ -1,0 +1,42 @@
+---
+title: "OLS-and-GAM"
+format: html
+editor: visual
+---
+
+```{r}
+library(here)
+library(tidyverse)
+library(mgcv)
+library(stargazer)
+
+df = read_csv(here("data", "NO2_ZEV_ZCTAs.csv")) %>% select(-ZCTA)
+net = read_csv(here("data", "ZEV_commuters.csv"))
+```
+
+## Table 1
+
+```{r}
+tbl = stargazer(as.data.frame(df))
+```
+
+## Associational Model
+
+```{r}
+
+model_ols = lm(no2_change ~ ., data = df)
+summary(model_ols)
+
+```
+
+```{r}
+
+model_gam = gam(no2_change ~ ZEV_pct_change + s(pop) + s(medin_g) + 
+                             s(pct_cll) + s(pct_wht) + s(mdn_ncm) + 
+                             s(pct_wn_) + s(mdn_hm_) + s(pct_aut) +
+                             s(pct_pb_) + s(pct_wfh) + s(D1C5_IN) + 
+                             s(D3A) + s(D4C) + s(NtWlkIn), data = df)
+
+summary(model_gam)
+
+```

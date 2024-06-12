@@ -6,7 +6,7 @@ library(readxl)
 
 # Define files we need
 setwd(here("data-cleaning"))
-data_folder = "intermediate_data"
+data_folder = file.path("data", "intermediate_data")
 shpfile = "ca_zev_no2_confounders.shp"
 csvfile = "ca_zev_no2_confounders.csv"
 
@@ -69,8 +69,8 @@ sum(sapply(index, length) == 0)
 interp_drop <- interp %>% filter(rowSums(is.na(interp)) == 0)
 
 # Store the files with interpolated missing values
-shp_filepath_nomissing = file.path("intermediate_data", "ca_zev_no2_confounders_nomissing.shp")
-csv_filepath_nomissing = file.path("intermediate_data", "ca_zev_no2_confounders_nomissing.csv")
+shp_filepath_nomissing = file.path("data", "intermediate_data", "ca_zev_no2_confounders_nomissing.shp")
+csv_filepath_nomissing = file.path("data", "intermediate_data", "ca_zev_no2_confounders_nomissing.csv")
 
 st_write(interp_drop, shp_filepath_nomissing)
 write_csv(st_drop_geometry(interp_drop), csv_filepath_nomissing)

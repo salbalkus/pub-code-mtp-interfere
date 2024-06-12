@@ -3,16 +3,15 @@ library(here)
 
 ### Download and read in data ###
 source(here("data-cleaning", "03_download_network.R"))
-setwd(here("data-cleaning"))
 
-data_folder = "raw_network"
-intermediate_folder = "intermediate_network"
+data_folder = here("data-cleaning", "raw_network")
+intermediate_folder = here("data-cleaning", "intermediate_network")
 derived_file = "derived_network.csv"
 only_ca_file = "ca_network.csv"
 
 # WARNING: The below takes a long time to run!
-network <- read.csv(file.path(data_folder, mainfile))
-xwalk <- read.csv(file.path(data_folder, xwalkfile)) %>% dplyr::select(tabblk2010, zcta)
+network <- read.csv(here(data_folder, mainfile))
+xwalk <- read.csv(here(data_folder, xwalkfile)) %>% dplyr::select(tabblk2010, zcta)
 
 # JT00 = All Jobs (what we want)
 network_xwalk_w <- left_join(network, xwalk, by=c("w_geocode" = "tabblk2010")) %>% rename(w_zcta = zcta)
@@ -22,14 +21,14 @@ network_xwalk <- left_join(network_xwalk_w, xwalk, by=c("h_geocode" = "tabblk201
 network_zcta <- network_xwalk %>% group_by(w_zcta, h_zcta) %>% summarize(jobs = sum(S000))
 
 # Store current processing step
-write_csv(network_zcta, file.path(intermediate_folder, derived_file))
+write_csv(network_zcta, here(intermediate_folder, derived_file))
 
 ### Filter to only include commuters within California ###
-network_zcta <- read_csv(file.path(intermediate_folder, derived_file))
+network_zcta <- read_csv(here(intermediate_folder, derived_file))
 
 valid_zcta <- unique(result$ZCTA)
 valid_network <- network_zcta %>% filter(w_zcta %in% valid_zcta) %>% filter(h_zcta %in% valid_zcta)
-write_csv(valid_network, file.path(intermediate_folder, only_ca_file))
+write_csv(valid_network, here(intermediate_folder, only_ca_file))
 
 
 ### Extra Summary Statistics ###
