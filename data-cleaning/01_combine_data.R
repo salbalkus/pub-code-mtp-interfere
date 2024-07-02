@@ -9,6 +9,7 @@ library(tidyverse)
 library(areal)
 library(readxl)
 options(tigris_use_cache = TRUE)
+raw_data_path <- here("data-cleaning", "raw_data")
 
 # Download necessary data
 # Also loads the source file names for each data source
@@ -23,7 +24,7 @@ zcta_vars_terra <- vect(zcta_vars$geometry)
 # Function to process the grid of air pollution data
 # and compute zonal statistics for ZCTAs
 get_pollutant <- function(filename, zcta_vars_terra){
-  path <- file.path(getwd(), filename)
+  path <- here(raw_data_path, filename)
   x <- nc_open(path)
   
   lon <- ncvar_get(x, "LON_CENTER")
@@ -42,7 +43,6 @@ get_pollutant <- function(filename, zcta_vars_terra){
   )
   return(zonal_mean$layer)
 }
-
 zcta_vars["no2_2019"] = get_pollutant(no2_2019_filename, zcta_vars_terra)
 zcta_vars["no2_2013"] = get_pollutant(no2_2013_filename, zcta_vars_terra)
 
@@ -51,27 +51,27 @@ zcta_vars["no2_2013"] = get_pollutant(no2_2013_filename, zcta_vars_terra)
 ### Population ###
 # Function to obtain population from full census
 # https://api.census.gov/data/2010/dec/sf1/variables.html
-zcta_pop <- get_decennial(geography = "zcta",
-                          variables = c(
-                            "P001001" # Total Population
-                            #"P003002", # White
-                            #"P003003", # Black
-                            #"P003004", # Indian/Alaskan
-                            #"P003005", # Asian
-                            #"P003006", # Islander
-                            #"P003007", # Other
-                            #"P003008", # Two or More Races
-                            #"P013001", # Median Age
-                          ),
-                          state = "CA",
-                          year = 2010,
-                          geometry = F) %>%
-  pivot_wider(id_cols = GEOID,
-              names_from = variable,
-              values_from = value
-  ) %>% mutate(pop = P001001, .keep = "unused")
+# zcta_pop <- get_decennial(geography = "zcta",
+#                           variables = c(
+#                             "P001001" # Total Population
+#                             #"P003002", # White
+#                             #"P003003", # Black
+#                             #"P003004", # Indian/Alaskan
+#                             #"P003005", # Asian
+#                             #"P003006", # Islander
+#                             #"P003007", # Other
+#                             #"P003008", # Two or More Races
+#                             #"P013001", # Median Age
+#                           ),
+#                           state = "CA",
+#                           year = 2010,
+#                           geometry = F) %>%
+#   pivot_wider(id_cols = GEOID,
+#               names_from = variable,
+#               values_from = value
+#   ) %>% mutate(pop = P001001, .keep = "unused")
 
-zcta_pop$GEOID <- str_sub(zcta_pop$GEOID, start = 3)
+# zcta_pop$GEOID <- str_sub(zcta_pop$GEOID, start = 3)
 
 ### American Community Survey (ACS) ###
 # From https://api.census.gov/data/2021/acs/acs5/variables.html
@@ -80,7 +80,7 @@ get_socio_year <- function(year){
   return(get_acs(geography = "zcta",
                  variables = c(
                    # General Population
-                   #"DP05_0001E", # Total Population
+                   "DP05_0001E", # Total Population
                    "DP05_0018E", # Median Age
                    # Education (collapse)
                    "DP02_0067PE", # High school graduate or higher
@@ -115,6 +115,7 @@ get_socio_year <- function(year){
              values_from = estimate
            ) %>%
            mutate(
+             pop = DP05_0001,
              median_age = DP05_0018,
              pct_highschool = DP02_0067P,
              pct_college =  DP02_0068P,
@@ -130,7 +131,7 @@ get_socio_year <- function(year){
 }
 
 # Get the sociodemographic variables for 2019
-zcta_socio <- get_socio_year(2019)
+zcta_socio <- get_socio_year(2019) %>% left_join(get_socio_year(2013) %>% dplyr::select(GEOID, pop), by = "GEOID", suffix = c("_2019", "_2013"))
 
 # From https://api.census.gov/data/2019/acs/acs5/profile/variables.html
 # Function to compute economic characteristics for a given year
@@ -172,8 +173,10 @@ get_econ_year <- function(year){
 zcta_econ <- get_econ_year(2019)
 
 # join the population, sociodemographic, and economic variables into a table of covariates
-zcta_covariates <- zcta_pop %>% 
-  inner_join(zcta_socio, by = "GEOID") %>% inner_join(zcta_econ, by = "GEOID")
+#zcta_covariates <- zcta_pop %>% 
+#  inner_join(zcta_socio, by = "GEOID") %>% inner_join(zcta_econ, by = "GEOID")
+
+zcta_covariates <- zcta_socio %>% inner_join(zcta_econ, by = "GEOID")
 
 # join the covariates to the outcome
 zcta <- inner_join(zcta_vars, zcta_covariates, by = c("ZCTA5CE10"="GEOID"), )
@@ -181,7 +184,6 @@ zcta <- inner_join(zcta_vars, zcta_covariates, by = c("ZCTA5CE10"="GEOID"), )
 # Clean up the dataframes that we've joined to avoid using too much memory
 rm(zcta_socio)
 rm(zcta_econ)
-rm(zcta_pop)
 rm(zcta_covariates)
 
 
@@ -189,8 +191,7 @@ rm(zcta_covariates)
 
 ### Smart Location ###
 # Load the data
-epa_SL <- st_read(file.path(smart_loc_filename, "SmartLocationDatabase.gdb"))
-
+epa_SL <- st_read(here("data-cleaning", "raw_data", smart_loc_filename, "SmartLocationDatabase.gdb"))
 # Select potentially relevant covariates from the Smart Location Mapping
 epa_SL <- epa_SL %>% dplyr::select(
   GEOID10,
@@ -224,7 +225,7 @@ zcta_interp <- aw_interpolate(zcta, tid = ZCTA5CE10, source = epa_SL_CA, sid = G
 
 # Merge based on UDS ZIP to the ZEV data
 zcta_vars <- tigris::zctas(year=2010, state="CA")
-zip_zcta_xref <- read_excel("ZIPCodetoZCTACrosswalk2019UDS.xlsx")
+zip_zcta_xref <- read_excel(here(raw_data_path, "ZIPCodetoZCTACrosswalk2019UDS.xlsx"))
 
 # Note that we exclude two ZIP_CODE : 89061 Nevada and 97635 Oregon included in the CA ZEV data since they presumably only count part of the vehicles (the ones who live in CA) in those ZIP codes, which would be misleading. Hence we limit to only ZCTAs fully enclosed in CA state.
 
@@ -234,7 +235,7 @@ zip_zcta_xref <- read_excel("ZIPCodetoZCTACrosswalk2019UDS.xlsx")
 # Read in the electric vehicle data
 # This may need to be updated if CA Energy Commission changed the number of columns,
 # as they did during this project
-zrz <- read_excel("Vehicle_Population.xlsx", sheet = "ZIP",
+zrz <- read_excel(here(raw_data_path, "Vehicle_Population.xlsx"), sheet = "ZIP",
                   col_types = c("numeric", "text", "text", "text", "numeric")) %>% filter(`Data Year` %in% c(2013, 2019))
 
 
@@ -262,12 +263,12 @@ zcta_zev <- zcta_zev %>%
 # Merge ZEV data with covariate data computed previously
 result <- full_join(zcta_zev, zcta_interp, by=c("ZCTA"="ZCTA5CE10"))
 # Compute population density. ALAND10 represents m^2, so convert to km^2
-result$pop_density <- result$pop / result$ALAND10 * 1000 * 1000
+result$pop_density <- result$pop_2019 / result$ALAND10 * 1000 * 1000
 
 # Save results as intermediate datasets in both shapefile and CSV formats
-setwd("..")
-shp_filepath = file.path("intermediate_data", "ca_zev_no2_confounders.shp")
-csv_filepath = file.path("intermediate_data", "ca_zev_no2_confounders.csv")
+intermediate = here("data-cleaning", "intermediate_data")
+shp_filepath = here(intermediate, "ca_zev_no2_confounders.shp")
+csv_filepath = here(intermediate, "ca_zev_no2_confounders.csv")
 st_write(result, shp_filepath)
 write_csv(st_drop_geometry(result), csv_filepath)
 

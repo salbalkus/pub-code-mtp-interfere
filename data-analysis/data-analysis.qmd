@@ -1,0 +1,139 @@
+---
+title: "OLS"
+format: html
+editor: visual
+---
+
+```{r}
+library(here)
+library(tidyverse)
+library(mgcv)
+library(stargazer)
+library(sf)
+library(colorspace)
+library("scales")
+
+
+df_raw = read_csv(here("data", "NO2_ZEV_ZCTAs.csv"))
+df = df_raw %>% select(-ZCTA)
+
+
+```
+
+## Table 1 with Summarized Data
+
+First, we add treatment summaries to the dataframe.
+
+```{r}
+net = read_csv(here("data", "ZEV_commuters.csv"))
+
+sum_df = net %>% 
+  left_join(df_raw, by = join_by(h_zcta == ZCTA)) %>% 
+  group_by(w_zcta) %>% 
+  summarize(ZEV_sum = sum(ZEV_2019_pct * weight))
+
+df2 = df_raw %>% 
+  left_join(sum_df, by = join_by(ZCTA == w_zcta)) %>% 
+  select(-ZCTA) %>%
+  mutate(ZEV_sum = replace_na(ZEV_sum, 0))
+
+df2
+
+```
+
+Create a LaTeX version of the data frame:
+
+```{r}
+tbl = stargazer(as.data.frame(df2), nobs = F, 
+                covariate.labels=c("Change in NO2, 2013-2019 (ppb)",
+                                   "\\% ZEV, 2019",
+                                   "\\% ZEV, 2013",
+                                   "Population",
+                                   "Median age",
+                                   "\\% College educated",
+                                   "\\% High school educated",
+                                   "\\% White",
+                                   "Median income",
+                                   "\\% in poverty",
+                                   "\\% of homes owner-occupied",
+                                   "Median home value",
+                                   "\\% Take automobile to work",
+                                   "\\% Take public transit to work",
+                                   "\\% Work from home",
+                                   "Industrial employment density",
+                                   "Road density",
+                                   "Transit frequency (peak)",
+                                   "Walkability index",
+                                   "Change in ZEV Summary"
+                ))
+```
+
+## Map of Treatment and Outcome
+
+```{r}
+# Read in shape data
+df_shp = st_read(here("data", "NO2_ZEV_ZCTAs.shp"))
+```
+
+### NO2
+
+```{r}
+p = ggplot(df_shp) + geom_sf(aes(geometry=geometry, fill = no2), color = NA) + 
+  theme(axis.line=element_blank(), 
+        axis.text.x=element_blank(), axis.title.x=element_blank(),
+        axis.text.y=element_blank(), axis.title.y=element_blank(),
+        axis.ticks=element_blank(), 
+        panel.background = element_blank()) + 
+  scale_fill_gradientn(
+      name = "Change in NO2, \n2013-2019 (ppb)",
+      colors=c("darkblue","#f5f5f5","darkred"),
+      values=rescale(c(-3.1,0,1.1)),
+      limits=c(-3.1,1.1), oob = scales::squish
+    )
+ggsave(here("output", "CA-NO2.png"), plot = p, width = 5, height = 5, units = "in", dpi = 300)
+p
+
+```
+
+### ZEV
+
+```{r}
+
+
+p = ggplot(df_shp) + geom_sf(aes(geometry=geometry, fill = ZEV_2019), color = NA) + 
+  theme(axis.line=element_blank(), 
+        axis.text.x=element_blank(), axis.title.x=element_blank(),
+        axis.text.y=element_blank(), axis.title.y=element_blank(),
+        axis.ticks=element_blank(), 
+        panel.background = element_blank()) + 
+  scale_fill_gradientn(
+    name = "% of ZEV, 2019",
+    colors=c("#f5f5f5","limegreen", "darkgreen"),
+    values=rescale(c(0,5,21)),
+    limits=c(0,21), oob = scales::squish, 
+  )
+
+ggsave(here("output", "CA-ZEV.png"), plot = p, width = 5, height = 5, units = "in", dpi = 300)
+p
+```
+
+## Associational Models
+
+```{r}
+df_census = df %>%
+  select(no2, ZEV_2019_pct, ZEV_2013_pct, pop, medin_g, pct_cll, pct_hgh, pct_wht, mdn_ncm, pct_pvr, pct_wn_, mdn_hm_)
+
+df_travel = df %>% select(no2, ZEV_2019_pct, ZEV_2013_pct, pop, medin_g, pct_cll, pct_hgh, pct_wht, mdn_ncm, pct_pvr, pct_wn_, mdn_hm_, pct_aut, pct_pb_, pct_wfh)
+
+model_census = lm(no2 ~ ., data = df_census)
+summary(model_census)
+
+model_travel = lm(no2 ~ ., data = df_travel)
+summary(model_travel)
+
+model_full = lm(no2 ~ ., data = df)
+summary(model_full)
+
+```
+
+## 

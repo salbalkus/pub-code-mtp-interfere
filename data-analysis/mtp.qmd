@@ -1,0 +1,135 @@
+---
+title: "MTP"
+format: html
+engine: julia
+---
+
+```{julia}
+using DrWatson
+quickactivate(@__DIR__)
+
+using CSV, DataFrames
+using CausalTables, Condensity, ModifiedTreatment
+using MLJ
+using Plots
+
+using SimpleWeightedGraphs
+
+using GLM
+using Tables, TableTransforms
+```
+
+```{julia}
+
+# Load the dataframe
+df_raw = CSV.read(joinpath("data","NO2_ZEV_ZCTAs.csv"), DataFrame)
+
+# Need to Z-Score everything for the LGBM to work
+df = select(sort(df_raw, :ZCTA), Not([:ZCTA, :n2_2019])) |> ZScore()
+
+```
+
+
+
+```{julia}
+net_raw = CSV.read(joinpath("data","ZEV_commuters.csv"), DataFrame)
+net = filter(row -> row.h_zcta ∈ df_raw.ZCTA && row.w_zcta ∈ df_raw.ZCTA, net_raw)
+
+# create index mapping for adjacency matrix and replace IDs with rank
+zctas = sort(union(unique(net.w_zcta), unique(net.h_zcta)))
+zctas_dict = Dict(zctas .=> 1:length(zctas))
+net.w_zcta = map(x -> zctas_dict[x], net.w_zcta)
+net.h_zcta = map(x -> zctas_dict[x], net.h_zcta)
+
+# Construct graph and extract weight matrix
+g = SimpleWeightedDiGraph(net.w_zcta, net.h_zcta, net.weight)
+w = transpose(g.weights)
+
+# Construct CausalTable
+ct = CausalTable(df; treatment = :ZEV_2019_pct, response = :no2, arrays = (weights = w,), summaries = (ZEV_sum = Sum(:ZEV_2019_pct, :weights),))
+ct_nosum = CausalTable(df; treatment = :ZEV_2019_pct, response = :no2)
+
+```
+
+Let's test out a linear regression.
+
+
+```{julia}
+cts = summarize(ct)
+Xtbl = CausalTables.responseparents(cts)
+X = Tables.matrix(Xtbl)
+y = Tables.getcolumn(cts, cts.response[1])
+
+lm(X, y)
+
+```
+
+
+Baseline comparison function
+
+```{julia}
+# Compute effect
+ψ0 = mean(df.no2)
+n = nrow(df)
+function get_effects_tuple(mtp_result, ψ0, n)
+        mtp_ψ = mtp_result.tmle.ψ .- ψ0
+        ciwidth = 1.96 * sqrt(mtp_result.tmle.σ2 / n)
+        (est = mtp_ψ, lower = mtp_ψ - ciwidth, upper = mtp_ψ + ciwidth)
+end
+
+```
+
+MTP
+
+```{julia}
+LinearRegressor = @load LinearRegressor pkg=MLJLinearModels
+ElasticNetRegressor = @load ElasticNetRegressor pkg=MLJLinearModels
+KNNRegressor = @load KNNRegressor pkg=NearestNeighborModels
+LGBMRegressor = @load LGBMRegressor pkg=LightGBM
+RandomForestRegressor = @load RandomForestRegressor pkg=DecisionTree
+
+mean_estimator = ModifiedTreatment.SuperLearner([
+                LinearRegressor(),
+                ElasticNetRegressor(),
+                KNNRegressor(),
+                RandomForestRegressor(n_trees = 100),
+                LGBMRegressor(linear_tree = true, num_iterations = 100)
+        ], CV(nfolds = 5)
+)
+
+# Search the grid of Sugiyama
+density_ratio_estimator = DensityRatioKLIEP(10 .^ (2:9), [10])
+
+cv_splitter = CV(nfolds = 5)
+mtp = MTP(mean_estimator, density_ratio_estimator, cv_splitter)
+```
+
+
+```{julia}
+mach = machine(mtp, ct, AdditiveShift(1.0)) |> fit!
+```
+
+
+```{julia}
+mtp_result_a = getestimate(estimate(mach, AdditiveShift(1.0)))
+mtp_effect_a = get_effects_tuple(mtp_result_a, ψ0, n)
+
+```
+
+
+
+```{julia}
+nuisance_machines(mach).machine_density.fitresult.machines[1].fitresult
+```
+```{julia}
+
+nuisance_machines(mach).machine_density.fitresult.machines[1].fitresult
+```
+
+
+```{julia}
+r = report(mach)
+#scatter(r.Qn, df.no2)
+
+```
+
