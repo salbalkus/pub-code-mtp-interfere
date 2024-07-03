@@ -3,4 +3,5 @@ data-cleaning/intermediate_network
 data-cleaning/raw_data
 data-cleaning/raw_network
 data
+simulations/data
 .Rproj.user

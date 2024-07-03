@@ -1,0 +1,35 @@
+module networkMTPsim
+
+    using DrWatson
+    using Random
+    using CausalTables
+    using ModifiedTreatment
+    using MLJBase
+    using Graphs
+    using CRC32
+    using LinearAlgebra
+    using SparseArrays
+
+    include("utilities.jl")
+    export cluster_graph
+
+    include("maketruth.jl")
+    export maketruth
+
+    using CSV
+    using DataFrames
+    using NamedTupleTools
+    include("simulate.jl")
+    export simulate
+    export simulate_mtp_fit
+    export simulate_data
+
+    using DataFramesMeta
+    using StatsBase
+    using StatsPlots
+    using Distributions
+    using LaTeXStrings
+    include("makeplots.jl")
+    export opchars
+    export makeplots
+end
