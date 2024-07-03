@@ -6,7 +6,7 @@ engine: julia
 
 ```{julia}
 using DrWatson
-quickactivate(@__DIR__)
+quickactivate("data-analysis")
 
 using CSV, DataFrames
 using CausalTables, Condensity, ModifiedTreatment
@@ -23,31 +23,44 @@ using Tables, TableTransforms
 
 # Load the dataframe
 df_raw = CSV.read(joinpath("data","NO2_ZEV_ZCTAs.csv"), DataFrame)
-
-# Need to Z-Score everything for the LGBM to work
-df = select(sort(df_raw, :ZCTA), Not([:ZCTA, :n2_2019])) |> ZScore()
+df = select(sort(df_raw, :ZCTA), Not([:ZCTA, :n2_2019]))
+df[!, "pop"] = float.(df_raw[!, "pop"]);
 
 ```
 
 
-
 ```{julia}
-net_raw = CSV.read(joinpath("data","ZEV_commuters.csv"), DataFrame)
-net = filter(row -> row.h_zcta ∈ df_raw.ZCTA && row.w_zcta ∈ df_raw.ZCTA, net_raw)
+net_raw_2019 = CSV.read(joinpath("data","ZEV_commuters_2019.csv"), DataFrame)
+net_raw_2013 = CSV.read(joinpath("data","ZEV_commuters_2013.csv"), DataFrame)
 
-# create index mapping for adjacency matrix and replace IDs with rank
-zctas = sort(union(unique(net.w_zcta), unique(net.h_zcta)))
-zctas_dict = Dict(zctas .=> 1:length(zctas))
-net.w_zcta = map(x -> zctas_dict[x], net.w_zcta)
-net.h_zcta = map(x -> zctas_dict[x], net.h_zcta)
+w = []
+for net_raw in [net_raw_2019, net_raw_2013]
+        net = filter(row -> row.h_zcta ∈ df_raw.ZCTA && row.w_zcta ∈ df_raw.ZCTA, net_raw)
 
-# Construct graph and extract weight matrix
-g = SimpleWeightedDiGraph(net.w_zcta, net.h_zcta, net.weight)
-w = transpose(g.weights)
+        # create index mapping for adjacency matrix and replace IDs with rank
+        zctas = sort(union(unique(net.w_zcta), unique(net.h_zcta)))
+        zctas_dict = Dict(zctas .=> 1:length(zctas))
+        net.w_zcta = map(x -> zctas_dict[x], net.w_zcta)
+        net.h_zcta = map(x -> zctas_dict[x], net.h_zcta)
 
-# Construct CausalTable
-ct = CausalTable(df; treatment = :ZEV_2019_pct, response = :no2, arrays = (weights = w,), summaries = (ZEV_sum = Sum(:ZEV_2019_pct, :weights),))
+        # Construct graph and extract weight matrix
+        g = SimpleWeightedDiGraph(net.w_zcta, net.h_zcta, net.weight)
+        push!(w, g.weights)
+end
+
+neighbors = .!(iszero.(w[1]))
+
+# Construct CausalTable with no summarization
 ct_nosum = CausalTable(df; treatment = :ZEV_2019_pct, response = :no2)
+
+# Construct CausalTable with network summaries
+ct = CausalTable(df; treatment = :ZEV_2019_pct, response = :no2, arrays = (F = neighbors, w_2019 = w[1], w_2013 = w[2],), 
+                        summaries = (ZEV_2019_sum = Sum(:ZEV_2019_pct, :w_2019),
+                                     ZEV_2013_sum = Sum(:ZEV_2013_pct, :w_2013),
+                                     pop_sum = Sum(:pop, :F),
+                                     pct_aut_mean = CausalTables.Mean(:pct_aut, :F),
+                                     pct_pb_mean = CausalTables.Mean(:pct_pb_, :F)
+                        ))
 
 ```
 
@@ -55,12 +68,13 @@ Let's test out a linear regression.
 
 
 ```{julia}
-cts = summarize(ct)
-Xtbl = CausalTables.responseparents(cts)
+Xtbl = CausalTables.responseparents(ct_nosum)
 X = Tables.matrix(Xtbl)
-y = Tables.getcolumn(cts, cts.response[1])
+y = Tables.getcolumn(ct_nosum, ct_nosum.response[1])
 
-lm(X, y)
+ols = lm(X, y)
+
+ols_effect = (est = coef(ols)[1], lower = confint(ols, 0.95)[1,1], upper = confint(ols, 0.95)[1,2])
 
 ```
 
@@ -83,14 +97,12 @@ MTP
 
 ```{julia}
 LinearRegressor = @load LinearRegressor pkg=MLJLinearModels
-ElasticNetRegressor = @load ElasticNetRegressor pkg=MLJLinearModels
 KNNRegressor = @load KNNRegressor pkg=NearestNeighborModels
 LGBMRegressor = @load LGBMRegressor pkg=LightGBM
 RandomForestRegressor = @load RandomForestRegressor pkg=DecisionTree
 
 mean_estimator = ModifiedTreatment.SuperLearner([
                 LinearRegressor(),
-                ElasticNetRegressor(),
                 KNNRegressor(),
                 RandomForestRegressor(n_trees = 100),
                 LGBMRegressor(linear_tree = true, num_iterations = 100)
@@ -98,15 +110,16 @@ mean_estimator = ModifiedTreatment.SuperLearner([
 )
 
 # Search the grid of Sugiyama
-density_ratio_estimator = DensityRatioKLIEP(10 .^ (2:9), [10])
+density_ratio_estimator = DensityRatioKLIEP(10 .^ (2:8), [10])
 
 cv_splitter = CV(nfolds = 5)
 mtp = MTP(mean_estimator, density_ratio_estimator, cv_splitter)
 ```
 
+First we run the MTP with no summarized features (assuming SUTVA)
 
 ```{julia}
-mach = machine(mtp, ct, AdditiveShift(1.0)) |> fit!
+mach = machine(mtp, ct_nosum, AdditiveShift(1.0)) |> fit!
 ```
 
 
@@ -116,20 +129,25 @@ mtp_effect_a = get_effects_tuple(mtp_result_a, ψ0, n)
 
 ```
 
-
-
-```{julia}
-nuisance_machines(mach).machine_density.fitresult.machines[1].fitresult
-```
-```{julia}
-
-nuisance_machines(mach).machine_density.fitresult.machines[1].fitresult
-```
-
+Next we run the MTP on the summarized data
 
 ```{julia}
-r = report(mach)
-#scatter(r.Qn, df.no2)
+mach_net = machine(mtp, ct, AdditiveShift(1.0)) |> fit!
 
 ```
 
+```{julia}
+mtp_result_net_a = getestimate(estimate(mach_net, AdditiveShift(1.0)))
+mtp_effect_net_a = get_effects_tuple(mtp_result_net_a, ψ0, n)
+
+```
+
+```{julia}
+ests = [mtp_effect_net_a, mtp_effect_a, ols_effect]
+estimators = ["MTP (Spillover)", "MTP (No Spillover)", "OLS (No Spillover)"]
+#estimators = ["MTP", "MTP with Spillover"]
+
+tbl = (method = ["NetworkMTP", "MTP", "OLS"], effects = map(x -> x.est, ests), upper = map(x -> x.upper, ests), lower = map(x -> x.lower, ests))
+CSV.write("mtp_analysis.csv", tbl)
+
+```
