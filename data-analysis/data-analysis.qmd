@@ -13,38 +13,17 @@ library(sf)
 library(colorspace)
 library("scales")
 
-
 df_raw = read_csv(here("data", "NO2_ZEV_ZCTAs.csv"))
 df = df_raw %>% select(-ZCTA)
 
-
 ```
 
-## Table 1 with Summarized Data
-
-First, we add treatment summaries to the dataframe.
-
-```{r}
-net = read_csv(here("data", "ZEV_commuters.csv"))
-
-sum_df = net %>% 
-  left_join(df_raw, by = join_by(h_zcta == ZCTA)) %>% 
-  group_by(w_zcta) %>% 
-  summarize(ZEV_sum = sum(ZEV_2019_pct * weight))
-
-df2 = df_raw %>% 
-  left_join(sum_df, by = join_by(ZCTA == w_zcta)) %>% 
-  select(-ZCTA) %>%
-  mutate(ZEV_sum = replace_na(ZEV_sum, 0))
-
-df2
-
-```
+## Table 1: Summary Statistics
 
 Create a LaTeX version of the data frame:
 
 ```{r}
-tbl = stargazer(as.data.frame(df2), nobs = F, 
+tbl = stargazer(as.data.frame(df), nobs = F, 
                 covariate.labels=c("Change in NO2, 2013-2019 (ppb)",
                                    "\\% ZEV, 2019",
                                    "\\% ZEV, 2013",
@@ -64,11 +43,10 @@ tbl = stargazer(as.data.frame(df2), nobs = F,
                                    "Road density",
                                    "Transit frequency (peak)",
                                    "Walkability index",
-                                   "Change in ZEV Summary"
                 ))
 ```
 
-## Map of Treatment and Outcome
+## Figure 1: Map of Treatment and Outcome
 
 ```{r}
 # Read in shape data
@@ -90,7 +68,7 @@ p = ggplot(df_shp) + geom_sf(aes(geometry=geometry, fill = no2), color = NA) +
       values=rescale(c(-3.1,0,1.1)),
       limits=c(-3.1,1.1), oob = scales::squish
     )
-ggsave(here("output", "CA-NO2.png"), plot = p, width = 5, height = 5, units = "in", dpi = 300)
+ggsave(here("results", "CA-NO2.png"), plot = p, width = 5, height = 5, units = "in", dpi = 300)
 p
 
 ```
@@ -98,7 +76,6 @@ p
 ### ZEV
 
 ```{r}
-
 
 p = ggplot(df_shp) + geom_sf(aes(geometry=geometry, fill = ZEV_2019), color = NA) + 
   theme(axis.line=element_blank(), 
@@ -113,27 +90,58 @@ p = ggplot(df_shp) + geom_sf(aes(geometry=geometry, fill = ZEV_2019), color = NA
     limits=c(0,21), oob = scales::squish, 
   )
 
-ggsave(here("output", "CA-ZEV.png"), plot = p, width = 5, height = 5, units = "in", dpi = 300)
+ggsave(here("results", "CA-ZEV.png"), plot = p, width = 5, height = 5, units = "in", dpi = 300)
 p
 ```
 
-## Associational Models
+## Figure 2: Full Confounder Comparison
 
 ```{r}
-df_census = df %>%
-  select(no2, ZEV_2019_pct, ZEV_2013_pct, pop, medin_g, pct_cll, pct_hgh, pct_wht, mdn_ncm, pct_pvr, pct_wn_, mdn_hm_)
+estimate_df = read_csv(here("results", "mtp_analysis.csv"))
+estimate_df$method = factor(estimate_df$method, c("NetworkMTP", "MTP",  "OLS"))
+group.colors <- c("OLS" = "#7BA573", "MTP" = "#7BA573", "NetworkMTP" = "#000332")
 
-df_travel = df %>% select(no2, ZEV_2019_pct, ZEV_2013_pct, pop, medin_g, pct_cll, pct_hgh, pct_wht, mdn_ncm, pct_pvr, pct_wn_, mdn_hm_, pct_aut, pct_pb_, pct_wfh)
 
-model_census = lm(no2 ~ ., data = df_census)
-summary(model_census)
+p = ggplot(estimate_df) + 
+  geom_vline(xintercept = 0, color = "darkgray") +
+  geom_errorbarh(aes(y = method, xmin = lower, xmax = upper, color = method), 
+                 height = .4, linewidth = 0.6) + 
+  geom_point(aes(x = effects, y = method, color = method), size = 2.5) +
+  theme_minimal() + 
+  theme(axis.text.x = element_text(margin = margin(t = 4, r = 10, b = 10, l = 10)),
+        legend.position = "none", 
+        plot.margin = margin(, 2, , , "cm")
+) +
+  ylab("") + xlab("Change in NO2 (ppb)") +
+  scale_color_manual(values=group.colors) 
 
-model_travel = lm(no2 ~ ., data = df_travel)
-summary(model_travel)
-
-model_full = lm(no2 ~ ., data = df)
-summary(model_full)
+p
+ggsave(here("results", "data-MTP-comparison.png"))
 
 ```
 
-## 
+## Figure 3: MTP Grid
+
+```{r}
+grid_df = read_csv(here("results", "mtp_grid.csv"))
+grid_df$upper[1] = NA
+grid_df$lower[1] = NA
+grid_df = abs(grid_df)
+
+p = ggplot(grid_df) + 
+  geom_errorbar(aes(x = shift, ymin = lower, ymax = upper), 
+                 width = .2, linewidth = 0.75, color = "#000332") + 
+  geom_point(aes(x = shift, y = est), size = 1.5, color = "#000332") +
+  geom_line(aes(x = shift, y = est), size = 0.75, color = "#000332") +
+  xlab("Increase in Proportion of ZEVs Across CA (Percentage Point)") +
+  ylab("Change in NO2 (ppb)") + 
+  theme_minimal()
+
+p
+
+ggsave(here("results", "data-MTP-grid.png"))
+
+
+```
+
+## Table 2: Sensitivity Analysis

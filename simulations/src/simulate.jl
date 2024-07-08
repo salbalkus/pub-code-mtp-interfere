@@ -62,11 +62,17 @@ function simulate(config::Dict; tag = false, print_every = 50)
                                 "bootstrap" => config["bootstrap"], "bootstrap_samples" => config["bootstrap_samples"])
                 
                 try 
-                    output[i + (k-1)*config["nreps"]] = simulate_mtp_fit(params)
+                    net_mtp = simulate_mtp_fit(params)
+                    iid_mtp = simulate_mtp_fit(params, true)
+                    ols = simulate_ols_fit(params)
+                    output[i + (k-1)*config["nreps"]] = vcat(net_mtp, iid_mtp, ols)
                 catch e
                     println("Error in simulation $(i) of $(c["nreps"]) in thread $(Threads.threadid())")
                     println("Trying again...")
-                    output[i + (k-1)*config["nreps"]] = simulate_mtp_fit(params)
+                    net_mtp = simulate_mtp_fit(params)
+                    iid_mtp = simulate_mtp_fit(params, true)
+                    ols = simulate_ols_fit(params) 
+                    output[i + (k-1)*config["nreps"]] = vcat(net_mtp, iid_mtp, ols)
                 end
             end
         end
@@ -98,17 +104,42 @@ end
 
 Fits an MTP to the data in `config` and computes causal estimates.
 """
-function simulate_mtp_fit(config)
+function simulate_mtp_fit(config, iid = false)
     # Fit MTP
-    mtpmach = machine(config["mtp"], config["data"], config["intervention"]) |> fit!
+    data = iid ? CausalTables.replace(config["data"]; summaries = (;)) : config["data"]
+    mtpmach = machine(config["mtp"], data, config["intervention"]) |> fit!
     
     # Compute causal estimates
     result = ModifiedTreatment.estimate(mtpmach, config["intervention"])
     ModifiedTreatment.bootstrap!(config["bootstrap"], result, config["bootstrap_samples"])
     est = getestimate(result)
 
-    return convert_to_df(config["samples"], config["i"], est)
+    return convert_to_df(config["samples"], config["i"], est, iid ? "_iid" : "")
 end
+
+function simulate_ols_fit(config)
+
+    length(config["data"].treatment) > 1 && error("OLS can only handle one treatment variable.")
+
+    treatment_index = findlast(x -> x == config["data"].treatment[1], Tables.columnnames(config["data"]))
+
+    X = Tables.matrix(CausalTables.responseparents(config["data"]))
+    y = vec(Tables.matrix(CausalTables.response(config["data"])))
+
+    ols = lm(X, y)
+    ψ = coef(ols)[treatment_index] / config["intervention"].δb(nothing)
+    σ2 = (stderror(ols)[treatment_index] / config["intervention"].δb(nothing))^2
+
+    DataFrame(
+            estimate = ["ψ", "σ2", "σ2net"],
+            value = [ψ, σ2, σ2],
+            method = ["ols", "ols", "ols"],
+            samples = fill(config["samples"], 3),
+            i = fill(config["i"], 3)
+        )
+
+end
+
 
 """
     convert_to_df(sample::Int, i::Int, ests)
@@ -116,7 +147,7 @@ end
 Converts an MTPResult outcome into a dataframe, to be concatenated in `makesimulation`.
 
 """
-function convert_to_df(sample::Int, i::Int, ests)
+function convert_to_df(sample::Int, i::Int, ests, appendage = "")
     output_vec = Vector{DataFrame}(undef, length(ests))
     j = 1
 
@@ -128,7 +159,7 @@ function convert_to_df(sample::Int, i::Int, ests)
         output_vec[j] = DataFrame(
             estimate = String.(collect(keys(nt))),
             value = collect(values(nt)),
-            method = String.(fill(key, length(nt)))
+            method = string.(fill(key, length(nt)), appendage)
         )
         j+=1
     end 

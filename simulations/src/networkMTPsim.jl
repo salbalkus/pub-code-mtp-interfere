@@ -9,6 +9,7 @@ module networkMTPsim
     using CRC32
     using LinearAlgebra
     using SparseArrays
+    using GLM
 
     include("utilities.jl")
     export cluster_graph
@@ -21,7 +22,7 @@ module networkMTPsim
     using NamedTupleTools
     include("simulate.jl")
     export simulate
-    export simulate_mtp_fit
+    export simulate_mtp_fit, simulate_ols_fit
     export simulate_data
 
     using DataFramesMeta

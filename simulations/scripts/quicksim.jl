@@ -20,7 +20,7 @@ name = "quicksim.jl"
 # Generate ground truth
 include(scriptsdir("dgp", "$(name)")) # load `dgp` and `intervention`
 config = maketruth(@strdict name seed ntruth scm intervention)
-config
+
 LinearRegressor = @load LinearRegressor pkg=MLJLinearModels
 
 mean_estimator = LinearRegressor()
@@ -35,14 +35,13 @@ config["nreps"] = 500
 config["mtp"] = mtp
 config["bootstrap"] = BasicSampler()
 config["bootstrap_samples"] = 0
-config["mtpname"] = "linear"
+config["mtpname"] = "comparison3"
 
 # Run the simulation
 @time result = networkMTPsim.simulate(config; print_every = config["nreps"] ÷ 10)
-result
 
 # Visualize the results
-makeplots(result, config; ci = [true, false, false], methodnames = ["plugin", "onestep", "tmle"], varsymb = :σ2)
+makeplots(result, config; ci = [false, false, false], methodnames = ["tmle", "tmle_iid", "ols"], varsymb = :σ2)
 plotparams = Dict("mtpname" => config["mtpname"], "nreps" => config["nreps"], "name" => name, "samples" => config["samples"])
 Plots.savefig(plotsdir(savename(plotparams, allowedtypes = (Real, String, Symbol, Vector))) * ".png")
 
@@ -64,7 +63,7 @@ config["nreps"] = 500
 config["mtp"] = mtp
 config["bootstrap"] = BasicSampler()
 config["bootstrap_samples"] = 0
-config["mtpname"] = "linear"
+config["mtpname"] = "comparison"
 
 # Run the simulation
 @time result = networkMTPsim.simulate(config; print_every = config["nreps"] ÷ 10)

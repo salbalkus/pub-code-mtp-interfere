@@ -33,13 +33,16 @@ config["nreps"] = 500
 config["mtp"] = mtp
 config["bootstrap"] = BasicSampler()
 config["bootstrap_samples"] = 0
-config["mtpname"] = "sum"
+config["mtpname"] = "comparison"
+
 
 # Run the simulation
 @time result = networkMTPsim.simulate(config; print_every = config["nreps"] ÷ 10)
+result
+
 result[!, "value"] = abs.(result[!, "value"])
 # Visualize the results
-makeplots(result, config; ci = [true, false, false], methodnames = ["plugin", "ipw", "onestep", "tmle"], varsymb = :σ2net)
+makeplots(result, config; ci = [false, false, false], methodnames = ["tmle", "tmle_iid", "ols"], varsymb = :σ2net)
 plotparams = Dict("mtpname" => config["mtpname"], "nreps" => config["nreps"], "name" => name, "samples" => config["samples"])
 Plots.savefig(plotsdir(savename(plotparams, allowedtypes = (Real, String, Symbol, Vector))) * ".png")
 

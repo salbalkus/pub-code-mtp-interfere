@@ -1,7 +1,6 @@
 function opchars(r::DataFrame, config::Dict; varsymb = :σ2, methodnames = ["plugin", "ipw", "sipw", "onestep", "tmle"])
     z = quantile(Normal(), 0.975)
     @chain r begin
-        #@rsubset(:value <: Number)
         unstack([:i, :method, :samples], :estimate, :value)
         @rsubset(:method ∈ methodnames)
         @transform(:bias = (:ψ .- config["ψ"]) ./ :ψ)

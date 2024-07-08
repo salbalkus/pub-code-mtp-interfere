@@ -151,3 +151,23 @@ tbl = (method = ["NetworkMTP", "MTP", "OLS"], effects = map(x -> x.est, ests), u
 CSV.write("mtp_analysis.csv", tbl)
 
 ```
+
+
+Let's also compute an MTP grid and save the results to a .CSV file.
+
+```{julia}
+```
+
+```{julia}
+est_grid = []
+as = 0.0:0.5:10.0
+for a in as
+        mtp_result_net_a = getestimate(estimate(mach_net, AdditiveShift(a)))
+        push!(est_grid, merge((shift = a,), get_effects_tuple(mtp_result_net_a, ψ0, n)))
+end
+```
+
+```{julia}
+CSV.write(joinpath("results", "mtp_grid.csv"), est_grid)
+
+```
