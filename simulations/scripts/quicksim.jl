@@ -35,13 +35,13 @@ config["nreps"] = 500
 config["mtp"] = mtp
 config["bootstrap"] = BasicSampler()
 config["bootstrap_samples"] = 0
-config["mtpname"] = "comparison3"
+config["mtpname"] = "comparison4"
 
 # Run the simulation
 @time result = networkMTPsim.simulate(config; print_every = config["nreps"] ÷ 10)
 
 # Visualize the results
-makeplots(result, config; ci = [false, false, false], methodnames = ["tmle", "tmle_iid", "ols"], varsymb = :σ2)
+makeplots(result, config; ci = [false, false, false], methodnames = ["tmle", "tmle_iid", "ols"], varsymb = :σ2net)
 plotparams = Dict("mtpname" => config["mtpname"], "nreps" => config["nreps"], "name" => name, "samples" => config["samples"])
 Plots.savefig(plotsdir(savename(plotparams, allowedtypes = (Real, String, Symbol, Vector))) * ".png")
 
@@ -51,7 +51,6 @@ name = "quicksimnet.jl"
 # Generate ground truth
 include(scriptsdir("dgp", "$(name)")) # load `dgp` and `intervention`
 config = maketruth(@strdict name seed ntruth scm intervention)
-config
 
 density_ratio_estimator = DensityRatioPlugIn(OracleDensityEstimator(scm))
 cv_splitter = nothing
@@ -63,17 +62,14 @@ config["nreps"] = 500
 config["mtp"] = mtp
 config["bootstrap"] = BasicSampler()
 config["bootstrap_samples"] = 0
-config["mtpname"] = "comparison"
+config["mtpname"] = "comparison3"
 
 # Run the simulation
 @time result = networkMTPsim.simulate(config; print_every = config["nreps"] ÷ 10)
 
+opchars(result, config; methodnames = ["tmle", "plugin_iid", "ols"], varsymb = :σ2net)
 # Visualize the results
-makeplots(result, config; ci = [true, false, false], methodnames = ["plugin", "onestep", "tmle"], varsymb = :σ2net)
+makeplots(result, config; ci = [true, false, false], methodnames = ["tmle", "plugin_iid", "ols"], varsymb = :σ2net)
 plotparams = Dict("mtpname" => config["mtpname"], "nreps" => config["nreps"], "name" => name, "samples" => config["samples"])
 Plots.savefig(plotsdir(savename(plotparams, allowedtypes = (Real, String, Symbol, Vector))) * ".png")
-
-
-
-
 
