@@ -1,22 +1,23 @@
 function opchars(r::DataFrame, config::Dict; varsymb = :σ2, methodnames = ["plugin", "ipw", "sipw", "onestep", "tmle"])
-    z = quantile(Normal(), 0.975)
+    replace!(r.value, missing => 0)
+    t =  quantile(TDist(maximum(r.i) - 1), 0.975)
     @chain r begin
         unstack([:i, :method, :samples], :estimate, :value)
         @rsubset(:method ∈ methodnames)
         @transform(:bias = (:ψ .- config["ψ"]) ./ :ψ)
         @transform(:scaled_bias = sqrt.(:samples) .* :bias)
-        @transform(:ci = z .* sqrt.($(varsymb)))
+        @transform(:ci = quantile.(TDist.(:samples .- 1), 0.975) .* sqrt.($(varsymb)))
         @transform(:upper = :ψ + :ci, :lower = :ψ - :ci)
         @transform(:coverage = map((u, l) -> !ismissing(l) ? config["ψ"] .≤ u .&& config["ψ"] .≥ l : missing, :upper, :lower))
         groupby([:samples, :method])
         @combine(:bias = mean(:bias),
                  :variance = mean($(varsymb)),
                  :scaled_bias = mean(:scaled_bias),
-                 :ci_bias = z .* std(:bias), 
-                 :ci_scaled_bias = z .* std(:scaled_bias),
+                 :ci_bias = t .* std(:bias), 
+                 :ci_scaled_bias = t .* std(:scaled_bias),
                  :coverage = mean(:coverage))
         @transform(:scaled_mse = :samples .* (:bias .^ 2 .+ :variance))
-        @transform(:ci_scaled_mse = map(x -> ismissing(x) ? 0 : x, z .* sqrt.(:scaled_mse)))
+        @transform(:ci_scaled_mse = map(x -> ismissing(x) ? 0 : t * sqrt(x), :scaled_mse))
     end
 end
 
@@ -68,7 +69,7 @@ function makeplots(result::DataFrame, config::Dict; varsymb = :σ2, ci = [true, 
     hline!([config["eff_bound"]], label = "Efficiency Bound")
 
     p4 = @df r plot(:samples, :coverage, group = :method,
-        ylims = [0.6, 1],
+        ylims = [0, 1],
         xlabel = xlab, 
         ylabel="Coverage",
         markershape = markershape,

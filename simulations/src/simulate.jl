@@ -106,7 +106,7 @@ Fits an MTP to the data in `config` and computes causal estimates.
 """
 function simulate_mtp_fit(config, iid = false)
     # Fit MTP
-    data = iid ? CausalTables.replace(config["data"]; summaries = (;), arrays = (;)) : config["data"]
+    data = iid ? CausalTables.replace(config["data"]; summaries = (;)) : config["data"]
     mtpmach = machine(config["mtp"], data, config["intervention"]) |> fit!
     
     # Compute causal estimates

@@ -14,7 +14,7 @@ library(colorspace)
 library("scales")
 
 df_raw = read_csv(here("data", "NO2_ZEV_ZCTAs.csv"))
-df = df_raw %>% select(-ZCTA)
+df = df_raw %>% select(-ZCTA, -n2_2019)
 
 ```
 
@@ -42,7 +42,7 @@ tbl = stargazer(as.data.frame(df), nobs = F,
                                    "Industrial employment density",
                                    "Road density",
                                    "Transit frequency (peak)",
-                                   "Walkability index",
+                                   "Walkability index"
                 ))
 ```
 
@@ -130,8 +130,7 @@ grid_df = abs(grid_df)
 
 p = ggplot(grid_df) + 
   geom_errorbar(aes(x = shift, ymin = lower, ymax = upper), 
-                 width = .2, linewidth = 0.75, color = "#000332") + 
-  geom_point(aes(x = shift, y = est), size = 1.5, color = "#000332") +
+                 width = 0, linewidth = 0.75, color = "#000332") + 
   geom_line(aes(x = shift, y = est), size = 0.75, color = "#000332") +
   xlab("Increase in Proportion of ZEVs Across CA (Percentage Point)") +
   ylab("Change in NO2 (ppb)") + 

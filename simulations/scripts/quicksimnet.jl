@@ -3,7 +3,7 @@ using DrWatson
 
 include(scriptsdir("auxiliary", "1-setup.jl"))
 
-name = "quicksim.jl"
-config_name = "iid"
+name = "quicksimnet.jl"
+config_name = "er"
 
 include(scriptsdir("auxiliary", "2-run-simulation-linear"))
