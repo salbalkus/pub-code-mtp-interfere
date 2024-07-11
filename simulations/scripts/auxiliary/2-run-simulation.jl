@@ -13,12 +13,10 @@ mean_estimator = SuperLearner([
     XGBoostRegressor()
 ], CV(nfolds = 4))
 
-density_ratio_estimator = DensityRatioPlugIn(OracleDensityEstimator(scm))
-#density_ratio_estimator = DensityRatioKLIEP([1.0, 10.0, 100.0, 1000.0], [10])
+#density_ratio_estimator = DensityRatioPlugIn(OracleDensityEstimator(scm))
+density_ratio_estimator = DensityRatioKLIEP([1.0, 10.0, 100.0, 1000.0, 10000.0], [12])
 
-cv_splitter = nothing#CV(nfolds = 4)
-boot_sampler = BasicSampler()
-
+cv_splitter = CV(nfolds = 5)#nothing
 mtp = MTP(mean_estimator, density_ratio_estimator, cv_splitter)
 
 # Define simulation parameters
