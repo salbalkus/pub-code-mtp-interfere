@@ -34,6 +34,9 @@ config_name = "approx=$(k)"
 
 include(scriptsdir("auxiliary", "2-run-simulation-linear.jl"))
 
-opchars(result, config; methodnames = ["tmle", "tmle_iid", "ols"], varsymb = :σ2net)
+# Manipulate the results
+tmp = opchars(result, config; methodnames = ["tmle", "tmle_iid", "ols"], varsymb = :σ2net)
+
+
 
 

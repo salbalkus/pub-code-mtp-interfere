@@ -1,0 +1,27 @@
+---
+title: "Analyzing Simulation Output"
+format: html
+---
+
+```{julia}
+using BSON
+
+
+```
+
+
+```{r}
+library(here)
+library(tidyverse)
+library(stargazer)
+```
+
+
+```{r}
+df = read_csv(here("simulations", "data", "estimates", "name=semisynthetic.jl_mtpname=approx=1000.csv"), na = c("", "NA", "NaN", "missing"))
+```
+
+```{r}
+
+```
+

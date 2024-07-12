@@ -1,7 +1,7 @@
 path = joinpath(projectdir(), "..", "data")
 
 # Prepare the data
-df_raw = CSV.read(joinpath("data","NO2_ZEV_ZCTAs.csv"), DataFrame)
+df_raw = CSV.read(joinpath(path,"NO2_ZEV_ZCTAs.csv"), DataFrame)
 df = select(sort(df_raw, :ZCTA), Not([:ZCTA, :n2_2019, :ZEV_2019_pct, :ZEV_2013_pct, :no2]))
 df[!, "pop"] = float.(df_raw[!, "pop"]);
 
