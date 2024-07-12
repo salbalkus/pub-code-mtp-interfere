@@ -4,7 +4,7 @@ config = maketruth(@strdict name seed ntruth scm intervention)
 LinearRegressor = @load LinearRegressor pkg=MLJLinearModels
 mean_estimator = LinearRegressor()
 
-density_ratio_estimator = DensityRatioPlugIn(OracleDensityEstimator(scm))
+density_ratio_estimator = DensityRatioPlugIn(OracleDensityEstimator(scm), true)
 #density_ratio_estimator = DensityRatioKLIEP([1.0, 10.0, 100.0, 1000.0, 10000.0], [15])
 
 cv_splitter = nothing#CV(nfolds = 4)

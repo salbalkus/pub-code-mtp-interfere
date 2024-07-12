@@ -15,7 +15,7 @@ module networkMTPsim
     export cluster_graph
 
     include("maketruth.jl")
-    export maketruth
+    export maketruth, simulate_truth
 
     using CSV
     using DataFrames

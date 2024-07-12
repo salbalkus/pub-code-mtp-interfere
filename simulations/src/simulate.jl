@@ -68,6 +68,7 @@ function simulate(config::Dict; tag = false, print_every = 50)
                     output[i + (k-1)*config["nreps"]] = vcat(net_mtp, iid_mtp, ols)
                 catch e
                     println("Error in simulation $(i) of $(c["nreps"]) in thread $(Threads.threadid())")
+                    println(e)
                     println("Trying again...")
                     net_mtp = simulate_mtp_fit(params)
                     iid_mtp = simulate_mtp_fit(params, true)
@@ -106,7 +107,7 @@ Fits an MTP to the data in `config` and computes causal estimates.
 """
 function simulate_mtp_fit(config, iid = false)
     # Fit MTP
-    data = iid ? CausalTables.replace(config["data"]; summaries = (;)) : config["data"]
+    data = iid ? CausalTables.replace(config["data"]; summaries = (;), confounders = setdiff(config["data"].confounders, keys(config["data"].summaries))) : config["data"]
     mtpmach = machine(config["mtp"], data, config["intervention"]) |> fit!
     
     # Compute causal estimates
@@ -121,14 +122,15 @@ function simulate_ols_fit(config)
 
     length(config["data"].treatment) > 1 && error("OLS can only handle one treatment variable.")
 
+    # Find the treatment index, and add 1 to account for intercept in OLS model
     treatment_index = findlast(x -> x == config["data"].treatment[1], Tables.columnnames(config["data"]))
 
     X = Tables.matrix(CausalTables.responseparents(config["data"]))
     y = vec(Tables.matrix(CausalTables.response(config["data"])))
 
     ols = lm(X, y)
-    ψ = coef(ols)[treatment_index] / config["intervention"].δb(nothing)
-    σ2 = (stderror(ols)[treatment_index] / config["intervention"].δb(nothing))^2
+    ψ = coef(ols)[treatment_index] * config["intervention"].δb(nothing) + mean(y)
+    σ2 = (stderror(ols)[treatment_index] * config["intervention"].δb(nothing))^2
 
     DataFrame(
             estimate = ["ψ", "σ2", "σ2net"],
