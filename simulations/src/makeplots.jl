@@ -4,16 +4,19 @@ function opchars(r::DataFrame, config::Dict; varsymb = :σ2, methodnames = ["plu
     @chain r begin
         unstack([:i, :method, :samples], :estimate, :value)
         @rsubset(:method ∈ methodnames)
-        @transform(:bias = (:ψ .- config["ψ"]) ./ :ψ)
+        @transform(:bias = (:ψ .- config["ψ"]))
+        @transform(:pct_bias = (:bias ./ config["ψ"]))
         @transform(:scaled_bias = sqrt.(:samples) .* :bias)
         @transform(:ci = quantile.(TDist.(:samples .- 1), 0.975) .* sqrt.($(varsymb)))
         @transform(:upper = :ψ + :ci, :lower = :ψ - :ci)
         @transform(:coverage = map((u, l) -> !ismissing(l) ? config["ψ"] .≤ u .&& config["ψ"] .≥ l : missing, :upper, :lower))
         groupby([:samples, :method])
         @combine(:bias = mean(:bias),
+                 :pct_bias = mean(:pct_bias),
                  :variance = mean($(varsymb)),
                  :scaled_bias = mean(:scaled_bias),
                  :ci_bias = t .* std(:bias), 
+                 :ci_pct_bias = t .* std(:pct_bias),
                  :ci_scaled_bias = t .* std(:scaled_bias),
                  :coverage = mean(:coverage))
         @transform(:scaled_mse = :samples .* (:bias .^ 2 .+ :variance))
@@ -28,7 +31,7 @@ function makeplots(result::DataFrame, config::Dict; varsymb = :σ2, ci = [true, 
 
     # Determine which plots will have error bars displayed
     errsymbs = Vector{Union{Nothing, Vector}}(nothing, 3)
-    ci[1] && (errsymbs[1] = r.ci_bias)
+    ci[1] && (errsymbs[1] = r.ci_pct_bias)
     ci[2] && (errsymbs[2] = r.ci_scaled_bias)
     ci[3] && (errsymbs[3] = r.ci_scaled_mse)
 
@@ -37,7 +40,7 @@ function makeplots(result::DataFrame, config::Dict; varsymb = :σ2, ci = [true, 
     markershape = :auto
     markerstrokecolor = :auto
 
-    p1 = @df r plot(:samples, :bias, group = :method,
+    p1 = @df r plot(:samples, :pct_bias, group = :method,
             yerror = errsymbs[1],
             xlabel = xlab, 
             ylabel=L"\psi - \hat{\psi}_n",

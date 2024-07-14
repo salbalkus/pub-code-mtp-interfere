@@ -1,9 +1,11 @@
+using TableTransforms
 path = joinpath(projectdir(), "..", "data")
 
 # Prepare the data
 df_raw = CSV.read(joinpath(path,"NO2_ZEV_ZCTAs.csv"), DataFrame)
 df = select(sort(df_raw, :ZCTA), Not([:ZCTA, :n2_2019, :ZEV_2019_pct, :ZEV_2013_pct, :no2]))
 df[!, "pop"] = float.(df_raw[!, "pop"]);
+df = df |> TableTransforms.Center()
 
 # Prepare the network
 net_raw = CSV.read(joinpath(path, "ZEV_commuters_2019.csv"), DataFrame)
@@ -40,14 +42,14 @@ scm = StructuralCausalModel(
         reg = (@. 0.0001 * L1 + 0.1 * L2 + 1.0 * L3 + 0.1 * L4 + 0.1 * L5 + 0.0001 * L6 + 0.1 * L7 + 0.1 * L8 + 
                   0.00001 * L9 + 0.1 * L10 + 0.1 * L11 + 1.0 * L12 + 1.0 * L13 + 0.1 * L14 + 0.1 * L15 + 0.1 * L16),
         G = neighbors,
-        F $ Friends(:G),
-        A ~ (@. Normal(0.01 * reg + 0.5, 1.0)),
+        F = Friends(:G),
+        A ~ (@. Normal(0.01 * reg, 1.0)),
         As $ Sum(:A, :G),
-        Y ~ (@. Normal(0.1 * A + 0.1 * As + 0.01 * reg, 0.5))
+        Y ~ (@. Normal(A + As + 0.1 * reg, 1.0))
     ),
     treatment = :A,
     response = :Y,
     confounders = [:F, :L1, :L2, :L3, :L4, :L5, :L6, :L7, :L8, :L9, :L10, :L11, :L12, :L13, :L14, :L15, :L16]
 )
 
-intervention = AdditiveShift(0.02)
+intervention = AdditiveShift(0.1)

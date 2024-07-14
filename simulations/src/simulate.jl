@@ -108,14 +108,20 @@ Fits an MTP to the data in `config` and computes causal estimates.
 function simulate_mtp_fit(config, iid = false)
     # Fit MTP
     data = iid ? CausalTables.replace(config["data"]; summaries = (;), confounders = setdiff(config["data"].confounders, keys(config["data"].summaries))) : config["data"]
+        
     mtpmach = machine(config["mtp"], data, config["intervention"]) |> fit!
     
     # Compute causal estimates
     result = ModifiedTreatment.estimate(mtpmach, config["intervention"])
     ModifiedTreatment.bootstrap!(config["bootstrap"], result, config["bootstrap_samples"])
     est = getestimate(result)
+    df = convert_to_df(config["samples"], config["i"], est, iid ? "_iid" : "")
 
-    return convert_to_df(config["samples"], config["i"], est, iid ? "_iid" : "")
+    # subtract off the "natural" mean value
+    #μ0 = mean(Tables.getcolumn(data, data.response[1]))
+    #df[!, "value"] = @. ifelse(df.estimate == "ψ", df.value - μ0, df.value)
+
+    return df
 end
 
 function simulate_ols_fit(config)
