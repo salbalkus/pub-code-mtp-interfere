@@ -17,7 +17,7 @@ scm = StructuralCausalModel(
         0.125 * L7 * L8 - 10.96),
         A ~ Normal.(0.1 * reg, 1),
         As $ Sum(:A, :G),
-        Y ~ (@. Normal(0.05 * A + 0.1 * As + 0.05 * reg + 1, 0.1))
+        Y ~ (@. Normal(0.05 * A + 0.1 * As + 0.05 * reg, 0.1))
     ),
     treatment = :A,
     response = :Y,
