@@ -13,10 +13,10 @@ mean_estimator = SuperLearner([
     XGBoostRegressor()
 ], CV(nfolds = 4))
 
-#density_ratio_estimator = DensityRatioPlugIn(OracleDensityEstimator(scm))
-density_ratio_estimator = DensityRatioKLIEP([1.0, 10.0, 100.0, 1000.0, 10000.0], [12])
+density_ratio_estimator = DensityRatioPlugIn(OracleDensityEstimator(scm))
+#density_ratio_estimator = DensityRatioKLIEP([1.0, 10.0, 100.0, 1000.0, 10000.0], [12])
 
-cv_splitter = CV(nfolds = 5)#nothing
+cv_splitter = nothing#CV(nfolds = 5)
 mtp = MTP(mean_estimator, density_ratio_estimator, cv_splitter)
 
 # Define simulation parameters
@@ -25,7 +25,7 @@ config["nreps"] = nreps
 config["mtp"] = mtp
 config["bootstrap"] = bootstrap
 config["bootstrap_samples"] = bootstrap_samples
-config["mtpname"] = config_name
+config["netname"] = netname
 
 # Run the simulation
 @time result = networkMTPsim.simulate(config; print_every = config["nreps"] ÷ 10)
@@ -33,5 +33,5 @@ result[result.estimate .== "σ2net", "value"] .= abs.(result[result.estimate .==
 
 # Visualize the results
 makeplots(result, config; ci = [false, false, false], methodnames = ["tmle", "tmle_iid", "ols"], varsymb = :σ2net)
-plotparams = Dict("mtpname" => config["mtpname"], "nreps" => config["nreps"], "name" => name, "samples" => config["samples"])
+plotparams = Dict("netname" => config["netname"], "nreps" => config["nreps"], "name" => name, "samples" => config["samples"])
 Plots.savefig(plotsdir(savename(plotparams, allowedtypes = (Real, String, Symbol, Vector))) * ".png")

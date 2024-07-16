@@ -3,9 +3,12 @@ using DrWatson
 
 include(scriptsdir("auxiliary", "1-setup.jl"))
 
-getgraph(n) = watts_strogatz(n, 4, 1/sqrt(n))
+getgraph(n) = watts_strogatz(n, 4, 0.5)
 name = "synthetic-1-interactions.jl"
-config_name = "ws"
-
+netname = "ws"
 
 include(scriptsdir("auxiliary", "2-run-simulation.jl"))
+
+savetable(result, config; varsymb = :σ2net)
+savetruth(config)
+

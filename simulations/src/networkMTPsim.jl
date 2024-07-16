@@ -33,4 +33,5 @@ module networkMTPsim
     include("makeplots.jl")
     export opchars
     export makeplots
+    export savetable, savetruth
 end

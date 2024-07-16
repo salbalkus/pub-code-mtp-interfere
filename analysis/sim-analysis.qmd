@@ -3,25 +3,109 @@ title: "Analyzing Simulation Output"
 format: html
 ---
 
-```{julia}
-using BSON
-
-
-```
-
-
 ```{r}
 library(here)
 library(tidyverse)
 library(stargazer)
+library(latex2exp)
+library(rbalkus)
+
+```
+
+## Synthetic
+
+```{r}
+network_names = c("er", "ba", "ws")
+
+here("data", paste0("summary-synthetic-3-stepwise.jl-", network_names[1], ".csv"))
+
+read_simulation_result <- function(x){
+  df = read_csv(here("data", paste0("summary-synthetic-3-stepwise.jl-", x, ".csv")))
+  df$network = x
+  return(df)
+}
+
+df = bind_rows(lapply(network_names, read_simulation_result))
+
+```
+```{r}
+truthdf = read_csv(here("data", paste0("synthetic-truth.csv"))) %>% 
+  filter(structure == "synthetic-3-stepwise.jl") %>%
+  pivot_longer(all_of(c("bias", "scaled_bias", "scaled_mse", "coverage")))
+
+truthdf$name = factor(truthdf$name, 
+                  c("bias", "scaled_bias", "scaled_mse", "coverage"), 
+                  labels = c(TeX("% Bias: $(\\hat{\\psi}_n - \\psi) / \\psi$"), 
+                             TeX("Scaled Bias: $\\sqrt{n}(\\hat{\\psi}_n - \\psi)$"), 
+                             TeX("Scaled MSE: $n((\\hat{\\psi}_n - \\psi)^2 + \\sigma^2)$"),
+                             TeX("Coverage")))
+
+truthdf$network = factor(truthdf$network,
+                    c("er", "ba", "ws"),
+                    labels = c(er = "Erdős-Rényi", ba = "Barabási-Albert", ws = "Watts-Strogatz"))
+
+
 ```
 
 
+
 ```{r}
-df = read_csv(here("simulations", "data", "estimates", "name=semisynthetic.jl_mtpname=approx=1000.csv"), na = c("", "NA", "NaN", "missing"))
+
+df2 = df %>% 
+  pivot_longer(all_of(c("pct_bias", "scaled_bias", "scaled_mse", "coverage"))) %>% 
+  select(samples, method, name, value, network) %>%
+  filter(method %in% c("tmle", "tmle_iid", "ols"))
+
+df2$name = factor(df2$name, 
+                  c("pct_bias", "scaled_bias", "scaled_mse", "coverage"), 
+                  labels = c(TeX("% Bias: $(\\hat{\\psi}_n - \\psi) / \\psi$"), 
+                             TeX("Scaled Bias: $\\sqrt{n}(\\hat{\\psi}_n - \\psi)$"), 
+                             TeX("Scaled MSE: $n((\\hat{\\psi}_n - \\psi)^2 + \\sigma^2)$"),
+                             TeX("Coverage")))
+
+df2$network = factor(df2$network,
+                    c("er", "ba", "ws"),
+                    labels = c(er = "Erdős-Rényi", ba = "Barabási-Albert", ws = "Watts-Strogatz"))
+
+df2$method = factor(df2$method,
+                    c("tmle", "tmle_iid", "ols"),
+                    labels = c(tmle = "Network TMLE", tmle_iid = "TMLE (No Network)", ols = "OLS (No Network)"))
 ```
 
 ```{r}
 
+theme_set(theme_light(base_size = 26))
+
+p1 = ggplot(df2) + 
+  geom_line(aes(x = samples, y = value, color = method), linewidth = 0.5) +
+  geom_point(aes(x = samples, y = value, color = method)) +
+  geom_hline(aes(yintercept = value), data = truthdf) + 
+  facet_grid(rows = vars(name), cols = vars(network), labeller=label_parsed, scales = "free_y") + 
+  ylab("") + xlab("Sample Size") + labs(color = "") +
+  scale_color_manual(values = c("#002e5c", "#ffa600", "#00aaf5")) + 
+  theme(strip.background = element_rect("#EEEEEE", "#d1d1d1"), 
+        strip.text = element_text(colour = 'black'), 
+        legend.position = "bottom",legend.title=element_blank(), legend.margin=margin(-10,0,0,0))
+
+ggsave("sim-result.png", p1, path = here("results"), width = 6, height = 8)
+
+```
+
+## Semi-Synthetic
+
+```{r}
+df = read_csv(here("data", "semisynthetic-summary.csv"))
+
+df$method = c("Network TMLE", "TMLE (No Network)", "OLS (No Network)")
+df$mse = df$bias^2 + df$variance
+df$pct_bias = df$pct_bias * 100
+df$coverage = df$coverage * 100
+
+df = df %>% select(method, pct_bias, coverage, mse)
+colnames(df) = c("Method", "Bias (%)", "Coverage (%)", "MSE")
+```
+
+```{r}
+stargazer(as.data.frame(df), summary=FALSE)
 ```
 

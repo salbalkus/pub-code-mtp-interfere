@@ -37,4 +37,8 @@ config_name = "approx=$(k);centered"
 include(scriptsdir("auxiliary", "2-run-simulation-linear.jl"))
 
 tbl = opchars(result, config; varsymb = :σ2, methodnames = ["tmle", "tmle_iid", "ols"])
+tbl2 = select(tbl, [:method, :bias, :pct_bias, :variance, :coverage])
+output_path = joinpath(projectdir(), "..", "data", "semisynthetic-summary.csv")
+CSV.write(output_path, tbl2)
+
 

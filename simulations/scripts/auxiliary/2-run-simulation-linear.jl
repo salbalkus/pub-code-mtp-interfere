@@ -18,13 +18,8 @@ config["nreps"] = nreps
 config["mtp"] = mtp
 config["bootstrap"] = bootstrap
 config["bootstrap_samples"] = bootstrap_samples
-config["mtpname"] = config_name
+config["netname"] = config_name
 
 # Run the simulation
 @time result = networkMTPsim.simulate(config; print_every = config["nreps"] ÷ 10)
 result[result.estimate .== "σ2net", "value"] .= abs.(result[result.estimate .== "σ2net", "value"]);
-
-# Visualize the results
-#makeplots(result, config; ci = [false, false, false], methodnames = ["tmle", "tmle_iid", "ols"], varsymb = :σ2net)
-#plotparams = Dict("mtpname" => config["mtpname"], "nreps" => config["nreps"], "name" => name, "samples" => config["samples"])
-#Plots.savefig(plotsdir(savename(plotparams, allowedtypes = (Real, String, Symbol, Vector))) * ".png")

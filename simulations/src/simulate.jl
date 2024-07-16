@@ -25,7 +25,7 @@ function simulate(config::Dict; tag = false, print_every = 50)
     mkpath(datadir("draws", "$(name)"))
 
     # Get (and if necessary, create) the output file
-    outputname = "name=$(config["name"])_mtpname=$(config["mtpname"]).csv"
+    outputname = "name=$(config["name"])_netname=$(config["netname"]).csv"
     path = datadir("estimates", outputname)
     if !isfile(path)
         CSV.write(path, DataFrame(estimate = [], value = [], method = [], samples = [], i = []))
@@ -49,7 +49,8 @@ function simulate(config::Dict; tag = false, print_every = 50)
 
         @Threads.threads for i in 1:c["nreps"]
             # either simulate the data, or load saved data
-            ct, _ = produce_or_load(simulate_data, c; filename = datadir("draws", "$(config["name"])", "i=$(i)_samples=$(c["samples"])"), tag = tag)
+            fn = config["name"] * "-" * config["netname"]
+            ct, _ = produce_or_load(simulate_data, c; filename = datadir("draws", "$(fn)", "i=$(i)_samples=$(c["samples"])"), tag = tag)
 
             # skip fitting MTP on data for which it has already been fit and store dummy
             if i in i_vec && c["samples"] in samples_vec

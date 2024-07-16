@@ -2,6 +2,7 @@ function opchars(r::DataFrame, config::Dict; varsymb = :σ2, methodnames = ["plu
     replace!(r.value, missing => 0)
     t =  quantile(TDist(maximum(r.i) - 1), 0.975)
     @chain r begin
+        @rsubset(.!(isnan(:value)))
         unstack([:i, :method, :samples], :estimate, :value)
         @rsubset(:method ∈ methodnames)
         @transform(:bias = (:ψ .- config["ψ"]))
@@ -10,6 +11,7 @@ function opchars(r::DataFrame, config::Dict; varsymb = :σ2, methodnames = ["plu
         @transform(:ci = quantile.(TDist.(:samples .- 1), 0.975) .* sqrt.($(varsymb)))
         @transform(:upper = :ψ + :ci, :lower = :ψ - :ci)
         @transform(:coverage = map((u, l) -> !ismissing(l) ? config["ψ"] .≤ u .&& config["ψ"] .≥ l : missing, :upper, :lower))
+        @rsubset(.!(isnan(:ψ)))
         groupby([:samples, :method])
         @combine(:bias = mean(:bias),
                  :pct_bias = mean(:pct_bias),
@@ -80,5 +82,21 @@ function makeplots(result::DataFrame, config::Dict; varsymb = :σ2, ci = [true, 
     ) 
     hline!([0.95], label = "Size")
 
-    return plot(p1, p2, p3, p4, layout = (2,2), size = (800, 600), plot_title = "$(config["mtpname"]), $(config["nreps"]) replicates")
+    return plot(p1, p2, p3, p4, layout = (2,2), size = (800, 600), plot_title = "$(config["netname"]), $(config["nreps"]) replicates")
+end
+
+function savetable(result, config; varsymb = :σ2net)
+    tbl = opchars(result, config; varsymb = varsymb, methodnames = unique(result.method))
+    output_path = joinpath(projectdir(), "..", "data", "summary-$(config["name"])-$(config["netname"]).csv")
+    CSV.write(output_path, tbl)
+end
+
+function savetruth(config; filename = "synthetic-truth.csv", coverage = 0.95)
+    dfrow = DataFrame(structure = [config["name"]], network = [config["netname"]], bias = [0], scaled_bias = [0], scaled_mse = [config["eff_bound"]], coverage = [coverage])
+    filepath = projectdir("..", "data", filename)
+    if !isfile(filepath)
+        CSV.write(filepath, dfrow)
+    else
+        CSV.write(filepath, dfrow; append = true)
+    end
 end
