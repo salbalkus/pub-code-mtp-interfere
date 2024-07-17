@@ -34,8 +34,9 @@ Create or load simulated truth data based on the given configuration.
 
 """
 function maketruth(config::Dict; tag = true)
-    params = Dict("name" => config["name"], "seed" => config["seed"], "ntruth" => config["ntruth"], "checksum" => script_checksum(config["name"]))
-    output, _ = produce_or_load(simulate_truth, config; filename = datadir("truth", savename(params)), tag = tag, suffix = "bson")
+    #params = Dict("name" => config["name"], "seed" => config["seed"], "ntruth" => config["ntruth"], "checksum" => script_checksum(config["name"]))
+    #output, _ = produce_or_load(simulate_truth, config; filename = datadir("truth", savename(params)), tag = tag, suffix = "bson")
+    output = simulate_truth(config)
     output["scm"] = config["scm"]
     output["intervention"] = config["intervention"]
     return output

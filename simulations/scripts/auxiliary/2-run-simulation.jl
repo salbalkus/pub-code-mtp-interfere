@@ -6,15 +6,18 @@ KNNRegressor = @load KNNRegressor pkg=NearestNeighborModels
 DecisionTreeRegressor = @load DecisionTreeRegressor pkg=DecisionTree
 XGBoostRegressor = @load XGBoostRegressor pkg=XGBoost
 
-mean_estimator = SuperLearner([
-    LinearRegressor(),
-    KNNRegressor(),
-    DecisionTreeRegressor(),
-    XGBoostRegressor()
-], CV(nfolds = 4))
+#mean_estimator = SuperLearner([
+#    LinearRegressor(),
+#    KNNRegressor(),
+#    DecisionTreeRegressor(),
+#    XGBoostRegressor()
+#], CV(nfolds = 4))
+mean_estimator = XGBoostRegressor()
 
-density_ratio_estimator = DensityRatioPlugIn(OracleDensityEstimator(scm))
-#density_ratio_estimator = DensityRatioKLIEP([1.0, 10.0, 100.0, 1000.0, 10000.0], [12])
+#density_ratio_estimator = DensityRatioPlugIn(OracleDensityEstimator(scm))
+#density_ratio_estimator = DensityRatioKMM(; σ = 100.0, λ = 0.001)
+LogisticClassifier = @load LogisticClassifier pkg=MLJLinearModels
+density_ratio_estimator = DensityRatioClassifier(LogisticClassifier())
 
 cv_splitter = nothing#CV(nfolds = 5)
 mtp = MTP(mean_estimator, density_ratio_estimator, cv_splitter)

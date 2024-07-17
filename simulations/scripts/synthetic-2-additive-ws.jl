@@ -11,3 +11,5 @@ include(scriptsdir("auxiliary", "2-run-simulation.jl"))
 
 savetable(result, config; varsymb = :σ2net)
 savetruth(config)
+
+

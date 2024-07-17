@@ -2,7 +2,7 @@
 
 julia_version = "1.10.2"
 manifest_format = "2.0"
-project_hash = "2f11a7a3ef60b31b2f72c6d43a2c71b145106f79"
+project_hash = "8e98d1b46a0baf35145e2c7940290c94115261fa"
 
 [[deps.ANSIColoredPrinters]]
 git-tree-sha1 = "574baf8110975760d391c710b6341da1afa48d8c"
@@ -156,6 +156,12 @@ git-tree-sha1 = "aebf55e6d7795e02ca500a689d326ac979aaf89e"
 uuid = "9718e550-a3fa-408a-8086-8db961cd8217"
 version = "0.1.1"
 
+[[deps.BenchmarkTools]]
+deps = ["JSON", "Logging", "Printf", "Profile", "Statistics", "UUIDs"]
+git-tree-sha1 = "f1dff6729bc61f4d49e140da1af55dcd1ac97b2f"
+uuid = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+version = "1.5.0"
+
 [[deps.BitFlags]]
 git-tree-sha1 = "0691e34b3bb8be9307330f88d1a3c3f25466c24d"
 uuid = "d1d4a3ce-64b1-5f1a-9ba4-7e7e69966f35"
@@ -262,6 +268,12 @@ git-tree-sha1 = "0ae819d8911029b988479b8b447bf4fad4b5bfa7"
 uuid = "5900dafe-f573-5c72-b367-76665857777b"
 version = "1.4.0"
 
+[[deps.CodecBzip2]]
+deps = ["Bzip2_jll", "Libdl", "TranscodingStreams"]
+git-tree-sha1 = "f8889d1770addf59d0a015c49a473fa2bdb9f809"
+uuid = "523fee87-0ab8-5b00-afb7-3ecf72e48cfd"
+version = "0.8.3"
+
 [[deps.CodecZlib]]
 deps = ["TranscodingStreams", "Zlib_jll"]
 git-tree-sha1 = "59939d8a997469ee05c4b4944560a820f9ba0d73"
@@ -349,7 +361,7 @@ version = "2.4.1"
 
 [[deps.Condensity]]
 deps = ["CausalTables", "DataAPI", "DensityRatioEstimation", "Distributions", "Documenter", "GaussianProcesses", "InvertedIndices", "KernelDensity", "MLJBase", "MLJModelInterface", "MLJTuning", "QuadGK", "StatsBase", "TableTransforms", "Tables"]
-git-tree-sha1 = "bbdf3befe2a8d1b8e683ab819e21be9f45174223"
+git-tree-sha1 = "94c9dc23c290a37a64c259ce736a273c9c4f377d"
 repo-rev = "main"
 repo-url = "https://github.com/salbalkus/Condensity.jl"
 uuid = "4a3ed1f2-33f5-4d2a-92e9-d08cf3575152"
@@ -942,6 +954,18 @@ git-tree-sha1 = "c84a835e1a09b289ffcd2271bf2a337bbdda6637"
 uuid = "aacddb02-875f-59d6-b918-886e6ef4fbf8"
 version = "3.0.3+0"
 
+[[deps.JuMP]]
+deps = ["LinearAlgebra", "MacroTools", "MathOptInterface", "MutableArithmetics", "OrderedCollections", "PrecompileTools", "Printf", "SparseArrays"]
+git-tree-sha1 = "7e10a0d8b534f2d8e9f712b33488584254624fb1"
+uuid = "4076af6c-e467-56ae-b986-b466b2749572"
+version = "1.22.2"
+
+    [deps.JuMP.extensions]
+    JuMPDimensionalDataExt = "DimensionalData"
+
+    [deps.JuMP.weakdeps]
+    DimensionalData = "0703355e-b756-11e9-17c0-8b28908087d0"
+
 [[deps.JuliaVariables]]
 deps = ["MLStyle", "NameResolution"]
 git-tree-sha1 = "49fb3cb53362ddadb4415e9b73926d6b40709e70"
@@ -1297,6 +1321,12 @@ git-tree-sha1 = "465a70f0fc7d443a00dcdc3267a497397b8a3899"
 uuid = "d0879d2d-cac2-40c8-9cee-1863dc0c7391"
 version = "0.1.2"
 
+[[deps.MathOptInterface]]
+deps = ["BenchmarkTools", "CodecBzip2", "CodecZlib", "DataStructures", "ForwardDiff", "JSON", "LinearAlgebra", "MutableArithmetics", "NaNMath", "OrderedCollections", "PrecompileTools", "Printf", "SparseArrays", "SpecialFunctions", "Test", "Unicode"]
+git-tree-sha1 = "91b08d27a27d83cf1e63e50837403e7f53a0fd74"
+uuid = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
+version = "1.31.0"
+
 [[deps.MbedTLS]]
 deps = ["Dates", "MbedTLS_jll", "MozillaCACerts_jll", "NetworkOptions", "Random", "Sockets"]
 git-tree-sha1 = "c067a280ddc25f196b5e7df3877c6b226d390aaf"
@@ -1330,9 +1360,9 @@ uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 
 [[deps.ModifiedTreatment]]
 deps = ["CausalTables", "Combinatorics", "Condensity", "DataAPI", "DensityRatioEstimation", "DiffResults", "ForwardDiff", "GLM", "Graphs", "LinearAlgebra", "MLJBase", "MLJModelInterface", "MLJModels", "MLJTuning", "Random", "SparseArrays", "StatisticalMeasures", "StatsBase", "TableTransforms", "Tables"]
-git-tree-sha1 = "c93356633119142d30ed9c3338556ee58b5ec9b7"
+git-tree-sha1 = "d6bf502b69a68de18eb2c406732b7a02dd8d0513"
 repo-rev = "main"
-repo-url = "https://github.com/salbalkus/ModifiedTreatment.jl.git"
+repo-url = "https://github.com/salbalkus/ModifiedTreatment.jl"
 uuid = "850ff2fb-1851-4098-84a9-06d36a9b9803"
 version = "1.0.0-DEV"
 
@@ -1345,6 +1375,12 @@ deps = ["Arpack", "Distributions", "LinearAlgebra", "SparseArrays", "Statistics"
 git-tree-sha1 = "816620e3aac93e5b5359e4fdaf23ca4525b00ddf"
 uuid = "6f286f6a-111f-5878-ab1e-185364afe411"
 version = "0.10.3"
+
+[[deps.MutableArithmetics]]
+deps = ["LinearAlgebra", "SparseArrays", "Test"]
+git-tree-sha1 = "898c56fbf8bf71afb0c02146ef26f3a454e88873"
+uuid = "d8a4904e-b15c-11e9-3269-09a3773c0cb0"
+version = "1.4.5"
 
 [[deps.NLSolversBase]]
 deps = ["DiffResults", "Distributed", "FiniteDiff", "ForwardDiff"]
@@ -1467,12 +1503,10 @@ deps = ["Compat", "FillArrays", "ForwardDiff", "LineSearches", "LinearAlgebra", 
 git-tree-sha1 = "d9b79c4eed437421ac4285148fcadf42e0700e89"
 uuid = "429524aa-4258-5aef-a3af-852621145aeb"
 version = "1.9.4"
+weakdeps = ["MathOptInterface"]
 
     [deps.Optim.extensions]
     OptimMOIExt = "MathOptInterface"
-
-    [deps.Optim.weakdeps]
-    MathOptInterface = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
 
 [[deps.Opus_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -1599,6 +1633,10 @@ version = "2.3.2"
 [[deps.Printf]]
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+
+[[deps.Profile]]
+deps = ["Printf"]
+uuid = "9abbd945-dff8-562f-b5e8-e1ebf5ef1b79"
 
 [[deps.ProgressMeter]]
 deps = ["Distributed", "Printf"]
