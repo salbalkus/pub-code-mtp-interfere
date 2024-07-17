@@ -26,7 +26,7 @@ scm = StructuralCausalModel(
     ),
     treatment = :A,
     response = :Y,
-    confounders = [:L1, :L2, :L3, :L4, :L5, :L6, :L7, :L8, :L1s, :F, :L1s, :L2s, :L3s, :L4s, :L5s, :L6s, :L7s, :L8s]
+    confounders = [:L1, :L2, :L3, :L4, :L5, :L6, :L7, :L8, :F, :L1s, :L2s, :L3s, :L4s, :L5s, :L6s, :L7s, :L8s]
 )
 intervention = AdditiveShift(0.1)
 
