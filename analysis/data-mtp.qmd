@@ -6,7 +6,7 @@ engine: julia
 
 ```{julia}
 using DrWatson
-quickactivate("data-analysis")
+quickactivate("analysis", "data-analysis")
 
 using CSV, DataFrames
 using CausalTables, Condensity, ModifiedTreatment

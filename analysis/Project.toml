@@ -1,3 +1,6 @@
+name = "data-analysis"
+authors = ["Salvador Balkus"]
+
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 CausalTables = "6af48e0c-efc2-4bf7-a92f-a553ccf79fd6"
