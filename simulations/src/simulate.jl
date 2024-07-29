@@ -20,9 +20,6 @@ function simulate(config::Dict; tag = false, print_every = 50)
     end
 
     # 3. Set up output files
-    # If the current DGP scenario does not already have subfolders for its data draws, make them
-    name = config["name"]
-    mkpath(datadir("draws", "$(name)"))
 
     # Get (and if necessary, create) the output file
     outputname = "name=$(config["name"])_netname=$(config["netname"]).csv"
