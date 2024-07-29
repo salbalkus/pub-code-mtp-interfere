@@ -38,7 +38,7 @@ if(!(smart_loc_filename %in% list.files(path))){
 ##### ZEV Data California ####
 # From https://www.energy.ca.gov/files/zev-and-infrastructure-stats-data
 
-zev_filename = here(path, "Vehicle_Population.xlsx")
+zev_filename = "Vehicle_Population.xlsx"
 zev_src = r"{https://www.energy.ca.gov/filebrowser/download/6311?fid=6311#block-symsoft-page-title}"
 
 if(!(zev_filename %in% list.files(path))){

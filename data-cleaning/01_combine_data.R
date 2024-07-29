@@ -1,11 +1,11 @@
 library(here)
+library(tidyverse)
+library(sf)
 library(ncdf4)
 library(raster)
 library(terra)
 library(tigris)
 library(tidycensus)
-library(sf)
-library(tidyverse)
 library(areal)
 library(readxl)
 options(tigris_use_cache = TRUE)
@@ -45,6 +45,8 @@ get_pollutant <- function(filename, zcta_vars_terra){
 }
 zcta_vars["no2_2019"] = get_pollutant(no2_2019_filename, zcta_vars_terra)
 zcta_vars["no2_2013"] = get_pollutant(no2_2013_filename, zcta_vars_terra)
+
+
 
 ##### Call Census Data API #####
 
