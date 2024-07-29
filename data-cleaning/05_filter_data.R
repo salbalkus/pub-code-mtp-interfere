@@ -44,5 +44,5 @@ treat_and_resp = c("no2", "n2_2019", "ZEV_2019_pct", "ZEV_2013_pct")
 df16 = df[,c(treat_and_resp, ctrl)]
 
 st_write(df16, here("data", "NO2_ZEV_ZCTAs.shp"))
-write_csv(as.data.frame(df16) %>% select(-geometry), here("data", "NO2_ZEV_ZCTAs.csv"))
+write_csv(as.data.frame(df16) %>% dplyr::select(-geometry), here("data", "NO2_ZEV_ZCTAs.csv"))
 
