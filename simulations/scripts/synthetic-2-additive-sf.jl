@@ -5,7 +5,7 @@ include(scriptsdir("auxiliary", "1-setup.jl"))
 
 getgraph(n) = static_scale_free(n, 2 * n, 4)
 name = "synthetic-2-additive.jl"
-netname = "sf4"
+netname = "sf"
 
 include(scriptsdir("auxiliary", "2-run-simulation.jl"))
 

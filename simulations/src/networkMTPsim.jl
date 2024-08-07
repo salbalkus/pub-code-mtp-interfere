@@ -10,6 +10,7 @@ module networkMTPsim
     using LinearAlgebra
     using SparseArrays
     using GLM
+    using Suppressor
 
     include("utilities.jl")
     export cluster_graph

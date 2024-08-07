@@ -19,8 +19,7 @@ function simulate(config::Dict; tag = false, print_every = 50)
         error("Cannot simulate multiple parameters over the same number of samples. Please test different MTPs across multiple scripts.")
     end
 
-    # 3. Set up output files
-
+    # 3. Set up output file
     # Get (and if necessary, create) the output file
     outputname = "name=$(config["name"])_netname=$(config["netname"]).csv"
     path = datadir("estimates", outputname)
@@ -58,7 +57,6 @@ function simulate(config::Dict; tag = false, print_every = 50)
                 i % print_every == 0 && println("Computing $(i) of $(c["nreps"]) in thread $(Threads.threadid())")
                 params = Dict("data" => ct["data"], "mtp" => config["mtp"], "intervention" => config["intervention"], "samples" => c["samples"], "i" => i,
                                 "bootstrap" => config["bootstrap"], "bootstrap_samples" => config["bootstrap_samples"])
-                
                 try 
                     net_mtp = simulate_mtp_fit(params)
                     iid_mtp = simulate_mtp_fit(params, true)
@@ -70,7 +68,8 @@ function simulate(config::Dict; tag = false, print_every = 50)
                     println("Trying again...")
                     net_mtp = simulate_mtp_fit(params)
                     iid_mtp = simulate_mtp_fit(params, true)
-                    ols = simulate_ols_fit(params) 
+                    ols = simulate_ols_fit(params)
+                    
                     output[i + (k-1)*config["nreps"]] = vcat(net_mtp, iid_mtp, ols)
                 end
             end
@@ -106,7 +105,6 @@ Fits an MTP to the data in `config` and computes causal estimates.
 function simulate_mtp_fit(config, iid = false)
     # Fit MTP
     data = iid ? CausalTables.replace(config["data"]; summaries = (;), confounders = setdiff(config["data"].confounders, keys(config["data"].summaries))) : config["data"]
-        
     mtpmach = machine(config["mtp"], data, config["intervention"]) |> fit!
     
     # Compute causal estimates
