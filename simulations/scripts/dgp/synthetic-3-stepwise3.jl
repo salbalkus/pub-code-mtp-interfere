@@ -5,7 +5,7 @@ scm = StructuralCausalModel(
         L3 ~ Gamma(2, 4),
         L4 ~ Bernoulli(0.6),
         n = length(L1),
-        G = adjacency_matrix(getgraph(n)),
+        G = Graphs.adjacency_matrix(getgraph(n)),
         F $ Friends(:G),
         L1o $ AllOrderStatistics(:L1, :G),
         L2o $ AllOrderStatistics(:L2, :G),

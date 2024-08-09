@@ -3,9 +3,10 @@ using DrWatson
 
 include(scriptsdir("auxiliary", "1-setup.jl"))
 
-getgraph(n) = static_scale_free(n, 2 * n, 4)
-name = "synthetic-3-stepwise2.jl"
-netname = "sf3bad"
+getgraph(n) = static_scale_free(n, 2 * n, 4.0)
+name = "synthetic-3-stepwise3.jl"
+#name = "synthetic-linear2.jl"
+netname = "sf3-newvar"
 
 include(scriptsdir("auxiliary", "2-run-simulation.jl"))
 
@@ -13,6 +14,8 @@ makeplots(result, config; ci = [false, false, false], methodnames = ["tmle", "tm
 
 savetable(result, config; varsymb = :σ2net)
 savetruth(config)
+
+
 
 
 

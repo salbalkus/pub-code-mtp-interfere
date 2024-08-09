@@ -46,8 +46,8 @@ function simulate(config::Dict; tag = false, print_every = 50)
         @Threads.threads for i in 1:c["nreps"]
             # either simulate the data, or load saved data
             fn = config["name"] * "-" * config["netname"]
-            ct, _ = produce_or_load(simulate_data, c; filename = datadir("draws", "$(fn)", "i=$(i)_samples=$(c["samples"])"), tag = tag)
-
+            #ct, _ = produce_or_load(simulate_data, c; filename = datadir("draws", "$(fn)", "i=$(i)_samples=$(c["samples"])"), tag = tag)
+            ct = simulate_data(c)
             # skip fitting MTP on data for which it has already been fit and store dummy
             if i in i_vec && c["samples"] in samples_vec
                 i % print_every == 1 && println("Skipping $(i) of $(c["nreps"]) in thread $(Threads.threadid())")

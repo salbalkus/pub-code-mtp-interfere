@@ -27,7 +27,6 @@ mean_estimator = XGBoostRegressor(objective = "reg:squarederror",
 #                                num_iterations = 100, learning_rate = 0.1, num_leaves = 127, min_data_per_group = 10)
 
 
-#density_ratio_estimator = DensityRatioPlugIn(OracleDensityEstimator(scm))
 #density_ratio_estimator = DensityRatioKMM(; σ = 100.0, λ = 0.001)
 
 #sl = SuperLearner([LogisticClassifier(), 
@@ -39,9 +38,10 @@ density_ratio_estimator = DensityRatioClassifier(XGBoostClassifier(booster = "gb
     num_round = 500, eta = 0.01, max_depth = 3, min_child_weight = 1.0, subsample = 0.5, lambda = 1))
 #density_ratio_estimator = DensityRatioClassifier(LGBMClassifier(linear_tree = true, force_col_wise=true, objective = "binary", metric = ["binary_logloss"],
 #                                                 num_iterations = 100, learning_rate = 0.001, num_leaves = 1000, min_data_per_group = 5))
+#density_ratio_estimator = DensityRatioPlugIn(OracleDensityEstimator(scm))
 
-cv_splitter = CV(nfolds = 5)
-#cv_splitter = nothing
+#cv_splitter = CV(nfolds = 5)
+cv_splitter = nothing
 mtp = MTP(mean_estimator, density_ratio_estimator, cv_splitter)
 
 # Define simulation parameters
@@ -52,10 +52,10 @@ config["bootstrap"] = bootstrap
 config["bootstrap_samples"] = bootstrap_samples
 config["netname"] = netname
 
-
-#mach = machine(MTP(mean_estimator, density_ratio_estimator, cv_splitter), dat, intervention) |> fit!
+dat = rand(scm, 1000)
+mach = machine(MTP(mean_estimator, density_ratio_estimator, cv_splitter), dat, intervention) |> fit!
 #mach2 = machine(MTP(mean_estimator, DensityRatioPlugIn(OracleDensityEstimator(scm)), nothing), dat, intervention) |> fit!
-
+ModifiedTreatment.estimate(mach, intervention)
 #maximum(abs.(report(mach).Hn .- report(mach2).Hn))
 #mean(abs.(report(mach).Hn .- report(mach2).Hn))
 #report(mach).Hn
@@ -69,7 +69,7 @@ config["netname"] = netname
 result[result.estimate .== "σ2net", "value"] .= abs.(result[result.estimate .== "σ2net", "value"]);
 
 # Visualize the results
-makeplots(result, config; ci = [false, false, false], methodnames = ["tmle", "tmle_iid", "ols"], varsymb = :σ2net)
+makeplots(result, config; ci = [false, false, false], methodnames = ["onestep", "onestep_iid", "ols"], varsymb = :σ2net)
 
 plotparams = Dict("netname" => config["netname"], "nreps" => config["nreps"], "name" => name, "samples" => config["samples"])
 Plots.savefig(plotsdir(savename(plotparams, allowedtypes = (Real, String, Symbol, Vector))) * ".png")

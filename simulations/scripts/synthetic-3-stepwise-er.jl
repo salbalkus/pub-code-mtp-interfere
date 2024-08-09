@@ -5,7 +5,7 @@ include(scriptsdir("auxiliary", "1-setup.jl"))
 
 getgraph(n) = erdos_renyi(n, 4/n)
 name = "synthetic-3-stepwise3.jl"
-netname = "er-fix2"
+netname = "er-newvar"
 
 include(scriptsdir("auxiliary", "2-run-simulation.jl"))
 
