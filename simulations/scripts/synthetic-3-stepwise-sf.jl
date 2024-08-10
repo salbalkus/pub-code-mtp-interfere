@@ -3,7 +3,7 @@ using DrWatson
 
 include(scriptsdir("auxiliary", "1-setup.jl"))
 
-getgraph(n) = static_scale_free(n, 2 * n, 4.0)
+getgraph(n) = static_scale_free(n, 2 * n, 3.5)
 name = "synthetic-3-stepwise3.jl"
 netname = "sf-super"
 
