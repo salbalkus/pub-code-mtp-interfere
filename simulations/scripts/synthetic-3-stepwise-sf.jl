@@ -5,8 +5,7 @@ include(scriptsdir("auxiliary", "1-setup.jl"))
 
 getgraph(n) = static_scale_free(n, 2 * n, 4.0)
 name = "synthetic-3-stepwise3.jl"
-#name = "synthetic-linear2.jl"
-netname = "sf3-newvar"
+netname = "sf-super"
 
 include(scriptsdir("auxiliary", "2-run-simulation.jl"))
 
