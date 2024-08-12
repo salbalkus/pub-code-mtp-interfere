@@ -19,20 +19,12 @@ scm = StructuralCausalModel(
         L6s = Sum(:L6, :G),
         L7s = Sum(:L7, :G),
         L8s = Sum(:L8, :G),
-
-        L3step = (@. (L3 > 0.4) + (L3 > 0.6) + (L3 + 0.8)),
-        L4step = (@. (L4 > 0.4) + (L4 > 0.6) + (L4 + 0.8)),
-        L5step = (@. (L5 > 5) + (L5 > 10)  + (L5 > 20)),
-        L6step = (@. (L5 > 50) + (L5 > 100)  + (L5 > 200)),
-        L7step = (@. (L7 > 0.1) + (L7 > 0.5) + (L7 > 1) + (L7 > 4)),
-        L8step = (@. (L7 > 0.1) + (L7 > 0.5) + (L7 > 1) + (L7 > 4) + (L7 > 10)),
-
-        nonlin = (@. (L1 + L2) + (L1 * L3step + L2 * L4step) + L5step + L6step + L7step + L8step),
+        nonlin = (@. 5 * (L1 + L2) + (L1 * L3 + L2 * L4) + log(L5 + 0.1 * L6) + 0.5 * sqrt(L7 + L8)),
         A ~ Normal.(0.1 * nonlin, 1.0),
         As $ Sum(:A, :G),
-        Y ~ (@. Normal(0.2 * ((A > 0) + (A > 0.1) + 2 * (A > 0.2) + 3 * (A > 0.4) + 4 * (A > 0.8) + 5 * (A > 2)) + 
-                        1.0 * ((As > 1) + (As > 0.5) + 2 * (As > 1) + 3 * (As > 2) + 4 * (As > 4) + 5 * (As > 8)) + 
-                        0.2 * nonlin, 0.1))
+        Y ~ (@. Normal(0.02 * ((A > -2) + 2 * (A > -1) + 3 * (A > -0.5) + 4 * (A > 0) + 5 * (A > 0.5) + 6 * (A > 1) + 7 * (A > 2)) + 
+                        0.1 * ((As > -8) + 2 * (As > -4) + 4 * (As > -2) + 6 * (As > 0) + 8* (As > 2) + 10 * (As > 4) + 12 * (As > 8)) + 
+                        0.05 * nonlin, 0.1))
     ),
     treatment = :A,
     response = :Y,

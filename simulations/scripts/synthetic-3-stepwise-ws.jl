@@ -4,8 +4,8 @@ using DrWatson
 include(scriptsdir("auxiliary", "1-setup.jl"))
 
 getgraph(n) = watts_strogatz(n, 4, 0.5)
-name = "synthetic-3-stepwise3.jl"
-netname = "ws-super"
+name = "synthetic-3-stepwise.jl"
+netname = "ws-super-fast"
 
 
 include(scriptsdir("auxiliary", "2-run-simulation.jl"))
