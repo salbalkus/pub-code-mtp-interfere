@@ -15,7 +15,7 @@ disable_logging(Logging.Warn)
 seed = 1
 ntruth = 10^6
 
-samples = [100, 900, 2500, 4900]
+samples = [100, 900, 2500]
 nreps = 100
 bootstrap = BasicSampler()
 bootstrap_samples = 0

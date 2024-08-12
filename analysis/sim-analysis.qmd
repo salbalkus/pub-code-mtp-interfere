@@ -7,15 +7,14 @@ format: html
 library(here)
 library(tidyverse)
 library(stargazer)
-library(latex2exp)
-library(rbalkus)
 
 ```
 
 ## Synthetic
 
 ```{r}
-network_names = c("er", "ba", "ws")
+network_names = c("er-super-fast", "sf-super-fast", "ws-super-fast")
+network_names_full = c(`er-super-fast` = "Erdős-Rényi", `sf-super-fast` = "Scale-Free", `ws-super-fast` = "Watts-Strogatz")
 
 here("data", paste0("summary-synthetic-3-stepwise.jl-", network_names[1], ".csv"))
 
@@ -29,20 +28,18 @@ df = bind_rows(lapply(network_names, read_simulation_result))
 
 ```
 ```{r}
+labels = c("`% Bias`", "`Scaled Bias`", "`Scaled MSE`", "`Coverage`")
+
 truthdf = read_csv(here("data", paste0("synthetic-truth.csv"))) %>% 
   filter(structure == "synthetic-3-stepwise.jl") %>%
   pivot_longer(all_of(c("bias", "scaled_bias", "scaled_mse", "coverage")))
 
 truthdf$name = factor(truthdf$name, 
                   c("bias", "scaled_bias", "scaled_mse", "coverage"), 
-                  labels = c(TeX("% Bias: $(\\hat{\\psi}_n - \\psi) / \\psi$"), 
-                             TeX("Scaled Bias: $\\sqrt{n}(\\hat{\\psi}_n - \\psi)$"), 
-                             TeX("Scaled MSE: $n((\\hat{\\psi}_n - \\psi)^2 + \\sigma^2)$"),
-                             TeX("Coverage")))
-
+                  labels = labels)
 truthdf$network = factor(truthdf$network,
-                    c("er", "ba", "ws"),
-                    labels = c(er = "Erdős-Rényi", ba = "Barabási-Albert", ws = "Watts-Strogatz"))
+                    network_names,
+                    labels = network_names_full)
 
 
 ```
@@ -58,23 +55,21 @@ df2 = df %>%
 
 df2$name = factor(df2$name, 
                   c("pct_bias", "scaled_bias", "scaled_mse", "coverage"), 
-                  labels = c(TeX("% Bias: $(\\hat{\\psi}_n - \\psi) / \\psi$"), 
-                             TeX("Scaled Bias: $\\sqrt{n}(\\hat{\\psi}_n - \\psi)$"), 
-                             TeX("Scaled MSE: $n((\\hat{\\psi}_n - \\psi)^2 + \\sigma^2)$"),
-                             TeX("Coverage")))
+                  labels = labels)
 
 df2$network = factor(df2$network,
-                    c("er", "ba", "ws"),
-                    labels = c(er = "Erdős-Rényi", ba = "Barabási-Albert", ws = "Watts-Strogatz"))
+                    network_names,
+                    labels = network_names_full)
 
 df2$method = factor(df2$method,
                     c("tmle", "tmle_iid", "ols"),
-                    labels = c(tmle = "Network TMLE", tmle_iid = "TMLE (No Network)", ols = "OLS (No Network)"))
+                    labels = c(tmle = "Network TMLE", tmle_iid = "TMLE (No Network)", ols = "Linear Regression (No Network)"))
+
 ```
 
 ```{r}
 
-theme_set(theme_light(base_size = 26))
+theme_set(theme_light(base_size = 10))
 
 p1 = ggplot(df2) + 
   geom_line(aes(x = samples, y = value, color = method), linewidth = 0.5) +
@@ -85,9 +80,12 @@ p1 = ggplot(df2) +
   scale_color_manual(values = c("#002e5c", "#ffa600", "#00aaf5")) + 
   theme(strip.background = element_rect("#EEEEEE", "#d1d1d1"), 
         strip.text = element_text(colour = 'black'), 
-        legend.position = "bottom",legend.title=element_blank(), legend.margin=margin(-10,0,0,0))
+        legend.position = "bottom",legend.title=element_blank(), 
+        legend.margin=margin(-10,0,0,0),
+        panel.spacing = unit(15, "pt")) +
+  scale_x_continuous(breaks = c(400, 900, 1600, 2500))
 
-ggsave("sim-result.png", p1, path = here("results"), width = 6, height = 8)
+ggsave("sim-result.png", p1, path = here("results"), width = 6, height = 6)
 
 ```
 

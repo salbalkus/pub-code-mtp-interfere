@@ -10,13 +10,21 @@ mean_estimator = SuperLearner([
     XGBoostRegressor(objective = "reg:squarederror", num_round = 1, 
                     colsample_bynode = 0.8, eta = 1, max_depth = 6, num_parallel_tree = 100, subsample = 0.8, tree_method = "hist"),
     XGBoostRegressor(objective = "reg:squarederror", 
-                    eta = 0.1, max_depth = 6, subsample = 1.0),
+                    eta = 0.1, max_depth = 6),
+    XGBoostRegressor(objective = "reg:squarederror", 
+                    eta = 0.01, max_depth = 6),
+    XGBoostRegressor(objective = "reg:squarederror", 
+                    num_round = 500, eta = 0.01, max_depth = 3),
 ], CV(nfolds = 4))
 
 sl = SuperLearner([
     XGBoostClassifier(objective = "binary:logistic", booster="gblinear"),
     XGBoostClassifier(objective = "binary:logistic", num_round = 1, 
                       colsample_bynode = 0.8, eta = 1, max_depth = 6, num_parallel_tree = 100, subsample = 0.8, tree_method = "hist"),
+    XGBoostClassifier(objective = "binary:logistic",
+                      num_round = 100, eta = 0.1, max_depth = 6, subsample = 1.0),
+    XGBoostClassifier(objective = "binary:logistic",
+                      num_round = 100, eta = 0.1, max_depth = 3, subsample = 0.5),
     XGBoostClassifier(objective = "binary:logistic",
                       num_round = 500, eta = 0.01, max_depth = 3, subsample = 0.5),
 ], CV(nfolds = 4))
