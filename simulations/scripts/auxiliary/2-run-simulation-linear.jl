@@ -4,18 +4,8 @@ config = maketruth(@strdict name seed ntruth scm intervention)
 LinearRegressor = @load LinearRegressor pkg=MLJLinearModels
 LogisticClassifier = @load LogisticClassifier pkg=MLJLinearModels
 mean_estimator = LinearRegressor()
-
-#density_ratio_estimator = DensityRatioPlugIn(OracleDensityEstimator(scm), true)
-#density_ratio_estimator = DensityRatioKLIEP([100.0, 1000.0], [50])
-#LogisticClassifier = @load LogisticClassifier pkg=MLJLinearModels
 density_ratio_estimator = DensityRatioClassifier(LogisticClassifier())
-#density_ratio_estimator = DensityRatioKernel(LSIF(σ = 1000.0))
-#density_ratio_estimator = DensityRatioKMM(; σ = 50.0, λ = 0.001)
-
-
-cv_splitter = nothing#CV(nfolds = 4)
-boot_sampler = BasicSampler()
-
+cv_splitter = nothing
 mtp = MTP(mean_estimator, density_ratio_estimator, cv_splitter)
 
 # Define simulation parameters
@@ -24,7 +14,7 @@ config["nreps"] = nreps
 config["mtp"] = mtp
 config["bootstrap"] = bootstrap
 config["bootstrap_samples"] = bootstrap_samples
-config["netname"] = config_name
+config["netname"] = netname
 
 # Run the simulation
 @time result = networkMTPsim.simulate(config; print_every = config["nreps"] ÷ 10)
