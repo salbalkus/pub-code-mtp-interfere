@@ -16,6 +16,6 @@ seed = 1
 ntruth = 10^6
 
 samples = [400, 900, 1600, 2500]
-nreps = 200
+nreps = 100
 bootstrap = BasicSampler()
 bootstrap_samples = 0
