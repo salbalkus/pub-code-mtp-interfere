@@ -45,22 +45,74 @@ for net_raw in [net_raw_2019, net_raw_2013]
 
         # Construct graph and extract weight matrix
         g = SimpleWeightedDiGraph(net.w_zcta, net.h_zcta, net.weight)
-        push!(w, g.weights)
+        cur_w = g.weights
+        #cur_w[g.weights .< 0.01] .= 0.0
+        push!(w, cur_w)
 end
 
 neighbors = .!(iszero.(w[1]))
+
+w1_tmp = copy(w[1])
+w1_tmp[w1_tmp .< 0.01] .= 0.0
+neighbors2 = .!(iszero.(w1_tmp))
+
+
+```
+
+```{julia}
 
 # Construct CausalTable with no summarization
 ct_nosum = CausalTable(df; treatment = :ZEV_2019_pct, response = :no2)
 
 # Construct CausalTable with network summaries
-ct = CausalTable(df; treatment = :ZEV_2019_pct, response = :no2, arrays = (F = neighbors, w_2019 = w[1], w_2013 = w[2],), 
-                        summaries = (ZEV_2019_sum = Sum(:ZEV_2019_pct, :w_2019),
-                                     ZEV_2013_sum = Sum(:ZEV_2013_pct, :w_2013),
-                                     pop_sum = Sum(:pop, :F),
-                                     pct_aut_mean = CausalTables.Mean(:pct_aut, :F),
-                                     pct_pb_mean = CausalTables.Mean(:pct_pb_, :F)
-                        ))
+confounders = union(setdiff(Tables.columnnames(df), [:ZEV_2019_pct, :no2]), [:nfriends])
+ct = CausalTable(df; treatment = :ZEV_2019_pct, response = :no2, 
+                confounders = confounders,
+                arrays = (F = neighbors, w_2019 = w[1], w_2013 = w[2],), 
+                summaries = (ZEV_2019_sum = Sum(:ZEV_2019_pct, :w_2019),
+                                ZEV_2013_sum = Sum(:ZEV_2013_pct, :w_2013),
+                                nfriends = CausalTables.Friends(:F),
+                                pop_s = CausalTables.Sum(:pop, :F),
+                                medin_g_s = CausalTables.Sum(:medin_g, :F),
+                                pct_cll_s = CausalTables.Sum(:pct_cll, :F),
+                                pct_hgh_s = CausalTables.Sum(:pct_hgh, :F),
+                                pct_wht_s = CausalTables.Sum(:pct_wht, :F),
+                                mdn_ncm_s = CausalTables.Sum(:mdn_ncm, :F),
+                                pct_pvr_s = CausalTables.Sum(:pct_pvr, :F),
+                                pct_wn__s = CausalTables.Sum(:pct_wn_, :F),
+                                mdn_hm__s = CausalTables.Sum(:mdn_hm_, :F),
+                                pct_aut_s = CausalTables.Sum(:pct_aut, :F),
+                                pct_pb_s = CausalTables.Sum(:pct_pb_, :F),
+                                pct_wfh_s = CausalTables.Sum(:pct_wfh, :F),
+                                D1C5_IN_s = CausalTables.Sum(:D1C5_IN, :F),
+                                D3A_s = CausalTables.Sum(:D3A, :F),
+                                D4C_s = CausalTables.Sum(:D4C, :F),
+                                NtWlkIn_s = CausalTables.Sum(:NtWlkIn, :F)
+                ))
+
+ct2 = CausalTable(df; treatment = :ZEV_2019_pct, response = :no2, 
+                confounders = confounders,
+                arrays = (F = neighbors2, w_2019 = w[1], w_2013 = w[2],), 
+                summaries = (ZEV_2019_sum = Sum(:ZEV_2019_pct, :w_2019),
+                                ZEV_2013_sum = Sum(:ZEV_2013_pct, :w_2013),
+                                nfriends = CausalTables.Friends(:F),
+                                pop_s = CausalTables.AllOrderStatistics(:pop, :F),
+                                medin_g_s = CausalTables.AllOrderStatistics(:medin_g, :F),
+                                pct_cll_s = CausalTables.AllOrderStatistics(:pct_cll, :F),
+                                pct_hgh_s = CausalTables.AllOrderStatistics(:pct_hgh, :F),
+                                pct_wht_s = CausalTables.AllOrderStatistics(:pct_wht, :F),
+                                mdn_ncm_s = CausalTables.AllOrderStatistics(:mdn_ncm, :F),
+                                pct_pvr_s = CausalTables.AllOrderStatistics(:pct_pvr, :F),
+                                pct_wn__s = CausalTables.AllOrderStatistics(:pct_wn_, :F),
+                                mdn_hm__s = CausalTables.AllOrderStatistics(:mdn_hm_, :F),
+                                pct_aut_s = CausalTables.AllOrderStatistics(:pct_aut, :F),
+                                pct_pb_s = CausalTables.AllOrderStatistics(:pct_pb_, :F),
+                                pct_wfh_s = CausalTables.AllOrderStatistics(:pct_wfh, :F),
+                                D1C5_IN_s = CausalTables.AllOrderStatistics(:D1C5_IN, :F),
+                                D3A_s = CausalTables.AllOrderStatistics(:D3A, :F),
+                                D4C_s = CausalTables.AllOrderStatistics(:D4C, :F),
+                                NtWlkIn_s = CausalTables.AllOrderStatistics(:NtWlkIn, :F)
+                ))
 
 ```
 
@@ -96,21 +148,36 @@ end
 MTP
 
 ```{julia}
-LinearRegressor = @load LinearRegressor pkg=MLJLinearModels
-KNNRegressor = @load KNNRegressor pkg=NearestNeighborModels
-LGBMRegressor = @load LGBMRegressor pkg=LightGBM
-RandomForestRegressor = @load RandomForestRegressor pkg=DecisionTree
+XGBoostRegressor = @load XGBoostRegressor pkg=XGBoost
+XGBoostClassifier = @load XGBoostClassifier pkg=XGBoost
+#LGBMRegressor = @load LGBMRegressor pkg=LightGBM
+#LGBMClassifier = @load LGBMRegressor pkg=LightGBM
 
-mean_estimator = ModifiedTreatment.SuperLearner([
-                LinearRegressor(),
-                KNNRegressor(),
-                RandomForestRegressor(n_trees = 100),
-                LGBMRegressor(linear_tree = true, num_iterations = 100)
-        ], CV(nfolds = 5)
-)
+mean_estimator = SuperLearner([
+    XGBoostRegressor(objective = "reg:squarederror", booster="gblinear"),
+    XGBoostRegressor(objective = "reg:squarederror", num_round = 1, 
+                    colsample_bynode = 0.8, eta = 1, max_depth = 6, num_parallel_tree = 100, subsample = 0.8, tree_method = "hist"),
+    XGBoostRegressor(objective = "reg:squarederror", 
+                    eta = 0.1, max_depth = 6),
+    XGBoostRegressor(objective = "reg:squarederror", 
+                    eta = 0.01, max_depth = 6),
+    XGBoostRegressor(objective = "reg:squarederror", 
+                    num_round = 500, eta = 0.01, max_depth = 3),
+], CV(nfolds = 5))
 
-# Search the grid of Sugiyama
-density_ratio_estimator = DensityRatioKLIEP(10 .^ (2:8), [10])
+sl = SuperLearner([
+    XGBoostClassifier(objective = "binary:logistic", booster="gblinear"),
+    XGBoostClassifier(objective = "binary:logistic", num_round = 1, 
+                      colsample_bynode = 0.8, eta = 1, max_depth = 6, num_parallel_tree = 100, subsample = 0.8, tree_method = "hist"),
+    XGBoostClassifier(objective = "binary:logistic",
+                      num_round = 100, eta = 0.1, max_depth = 6, subsample = 1.0),
+    XGBoostClassifier(objective = "binary:logistic",
+                      num_round = 100, eta = 0.1, max_depth = 3, subsample = 0.5),
+    XGBoostClassifier(objective = "binary:logistic",
+                      num_round = 500, eta = 0.01, max_depth = 3, subsample = 0.5),
+], CV(nfolds = 5))
+
+density_ratio_estimator = DensityRatioClassifier(sl)
 
 cv_splitter = CV(nfolds = 5)
 mtp = MTP(mean_estimator, density_ratio_estimator, cv_splitter)
@@ -124,7 +191,7 @@ mach = machine(mtp, ct_nosum, AdditiveShift(1.0)) |> fit!
 
 
 ```{julia}
-mtp_result_a = getestimate(estimate(mach, AdditiveShift(1.0)))
+mtp_result_a = getestimate(ModifiedTreatment.estimate(mach, AdditiveShift(1.0)))
 mtp_effect_a = get_effects_tuple(mtp_result_a, ψ0, n)
 
 ```
@@ -132,23 +199,28 @@ mtp_effect_a = get_effects_tuple(mtp_result_a, ψ0, n)
 Next we run the MTP on the summarized data
 
 ```{julia}
-mach_net = machine(mtp, ct, AdditiveShift(1.0)) |> fit!
+
+mach_net_sum = machine(mtp, ct, AdditiveShift(1.0)) |> fit!
+mtp_result_net_a_sum = getestimate(ModifiedTreatment.estimate(mach_net_sum, AdditiveShift(1.0)))
+mtp_effect_net_a_sum = get_effects_tuple(mtp_result_net_a_sum, ψ0, n)
 
 ```
 
 ```{julia}
-mtp_result_net_a = getestimate(estimate(mach_net, AdditiveShift(1.0)))
-mtp_effect_net_a = get_effects_tuple(mtp_result_net_a, ψ0, n)
+
+mach_net_os = machine(mtp, ct2, AdditiveShift(1.0)) |> fit!
+mtp_result_net_a_os = getestimate(ModifiedTreatment.estimate(mach_net_os, AdditiveShift(1.0)))
+mtp_effect_net_a_os = get_effects_tuple(mtp_result_net_a_os, ψ0, n)
 
 ```
 
 ```{julia}
-ests = [mtp_effect_net_a, mtp_effect_a, ols_effect]
-estimators = ["MTP (Spillover)", "MTP (No Spillover)", "OLS (No Spillover)"]
-#estimators = ["MTP", "MTP with Spillover"]
+ests = [mtp_effect_net_a_sum, mtp_effect_net_a_os, mtp_effect_a, ols_effect]
 
-tbl = (method = ["NetworkMTP", "MTP", "OLS"], effects = map(x -> x.est, ests), upper = map(x -> x.upper, ests), lower = map(x -> x.lower, ests))
-CSV.write("mtp_analysis.csv", tbl)
+tbl = (method = ["Network MTP (Sum)", "Network MTP (Order Statistics)", "MTP", "Linear Regression"], effects = map(x -> x.est, ests), upper = map(x -> x.upper, ests), lower = map(x -> x.lower, ests))
+CSV.write(joinpath("results", "mtp_analysis_a.csv"), tbl)
+
+tbl
 
 ```
 
@@ -156,18 +228,64 @@ CSV.write("mtp_analysis.csv", tbl)
 Let's also compute an MTP grid and save the results to a .CSV file.
 
 ```{julia}
-```
-
-```{julia}
-est_grid = []
+est_grid_a = []
 as = 0.0:0.5:10.0
 for a in as
-        mtp_result_net_a = getestimate(estimate(mach_net, AdditiveShift(a)))
-        push!(est_grid, merge((shift = a,), get_effects_tuple(mtp_result_net_a, ψ0, n)))
+        shift = AdditiveShift(a)
+        mtp_result_a = getestimate(estimate(mach, shift))
+        mtp_result_net_a_sum = getestimate(estimate(mach_net_sum, shift))
+        mtp_result_net_a_os = getestimate(estimate(mach_net_os, shift))
+
+        push!(est_grid_a, merge((shift = a, name = "TMLE"), get_effects_tuple(mtp_result_a, ψ0, n)))
+        push!(est_grid_a, merge((shift = a, name = "Network TMLE (Sum)"), get_effects_tuple(mtp_result_net_a_sum, ψ0, n)))
+        push!(est_grid_a, merge((shift = a, name = "Network TMLE (Order Statistics)"), get_effects_tuple(mtp_result_net_a_os, ψ0, n)))
+
 end
+
+CSV.write(joinpath("results", "mtp_grid_a.csv"), est_grid_a)
+
 ```
 
+
+Let's try the same analysis, but with a multiplicative shift. We can reuse our previously-fitted models and evaluate them on another shift.
+
 ```{julia}
-CSV.write(joinpath("results", "mtp_grid.csv"), est_grid)
+
+mshift = MultiplicativeShift(1.2)
+
+mtp_result_m = getestimate(ModifiedTreatment.estimate(mach, mshift))
+mtp_effect_m = get_effects_tuple(mtp_result_m, ψ0, n)
+
+mtp_result_net_m_sum = getestimate(ModifiedTreatment.estimate(mach_net_sum, mshift))
+mtp_effect_net_m_sum = get_effects_tuple(mtp_result_net_m_sum, ψ0, n)
+
+mtp_result_net_m_os = getestimate(ModifiedTreatment.estimate(mach_net_os, mshift))
+mtp_effect_net_m_os = get_effects_tuple(mtp_result_net_m_os, ψ0, n)
+
+ests = [mtp_effect_net_m_sum, mtp_effect_net_m_os, mtp_effect_m]
+
+tbl = (method = ["Network MTP (Sum)", "Network MTP (Order Statistic)", "MTP"], effects = map(x -> x.est, ests), upper = map(x -> x.upper, ests), lower = map(x -> x.lower, ests))
+CSV.write(joinpath("results", "mtp_analysis_m.csv"), tbl)
+
+
+```
+
+
+```{julia}
+
+est_grid_m = []
+as = 0.0:0.1:1.0
+for a in as
+        shift = MultiplicativeShift(1.0 + a)
+        mtp_result_m = getestimate(estimate(mach, shift))
+        mtp_result_net_m_sum = getestimate(estimate(mach_net_sum, shift))
+        mtp_result_net_m_os = getestimate(estimate(mach_net_os, shift))
+
+        push!(est_grid_m, merge((shift = a, name = "TMLE"), get_effects_tuple(mtp_result_m, ψ0, n)))
+        push!(est_grid_m, merge((shift = a, name = "Network TMLE (Sum)"), get_effects_tuple(mtp_result_net_m_sum, ψ0, n)))
+        push!(est_grid_m, merge((shift = a, name = "Network TMLE (Order Statistics)"), get_effects_tuple(mtp_result_net_m_os, ψ0, n)))
+end
+
+CSV.write(joinpath("results", "mtp_grid_m.csv"), est_grid_m)
 
 ```
