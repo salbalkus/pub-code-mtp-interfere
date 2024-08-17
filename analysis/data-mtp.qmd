@@ -124,9 +124,18 @@ Xtbl = CausalTables.responseparents(ct_nosum)
 X = Tables.matrix(Xtbl)
 y = Tables.getcolumn(ct_nosum, ct_nosum.response[1])
 
-ols = lm(X, y)
+glm_a = lm(X, y)
 
-ols_effect = (est = coef(ols)[1], lower = confint(ols, 0.95)[1,1], upper = confint(ols, 0.95)[1,2])
+glm_effect_a = (est = coef(glm_a)[1], 
+                   lower = confint(glm_a, 0.95)[1,1], 
+                   upper = confint(glm_a, 0.95)[1,2])
+
+y01 = (y .- minimum(y)) ./ (maximum(y) .- minimum(y))
+glm_m = glm(X, y01, Binomial(), LogLink())
+
+glm_effect_m = (est = coef(glm_m)[1], 
+                   lower = confint(glm_m, 0.95)[1,1], 
+                   upper = confint(glm_m, 0.95)[1,2])
 
 ```
 
@@ -139,7 +148,7 @@ Baseline comparison function
 n = nrow(df)
 function get_effects_tuple(mtp_result, ψ0, n)
         mtp_ψ = mtp_result.tmle.ψ .- ψ0
-        ciwidth = 1.96 * sqrt(mtp_result.tmle.σ2 / n)
+        ciwidth = 1.96 * sqrt(mtp_result.tmle.σ2net / n)
         (est = mtp_ψ, lower = mtp_ψ - ciwidth, upper = mtp_ψ + ciwidth)
 end
 
@@ -150,8 +159,6 @@ MTP
 ```{julia}
 XGBoostRegressor = @load XGBoostRegressor pkg=XGBoost
 XGBoostClassifier = @load XGBoostClassifier pkg=XGBoost
-#LGBMRegressor = @load LGBMRegressor pkg=LightGBM
-#LGBMClassifier = @load LGBMRegressor pkg=LightGBM
 
 mean_estimator = SuperLearner([
     XGBoostRegressor(objective = "reg:squarederror", booster="gblinear"),
@@ -186,12 +193,13 @@ mtp = MTP(mean_estimator, density_ratio_estimator, cv_splitter)
 First we run the MTP with no summarized features (assuming SUTVA)
 
 ```{julia}
-mach = machine(mtp, ct_nosum, AdditiveShift(1.0)) |> fit!
+shift = AdditiveShift(1.0)
+mach = machine(mtp, ct_nosum, shift) |> fit!
 ```
 
 
 ```{julia}
-mtp_result_a = getestimate(ModifiedTreatment.estimate(mach, AdditiveShift(1.0)))
+mtp_result_a = getestimate(ModifiedTreatment.estimate(mach, shift))
 mtp_effect_a = get_effects_tuple(mtp_result_a, ψ0, n)
 
 ```
@@ -200,7 +208,7 @@ Next we run the MTP on the summarized data
 
 ```{julia}
 
-mach_net_sum = machine(mtp, ct, AdditiveShift(1.0)) |> fit!
+mach_net_sum = machine(mtp, ct, shift) |> fit!
 mtp_result_net_a_sum = getestimate(ModifiedTreatment.estimate(mach_net_sum, AdditiveShift(1.0)))
 mtp_effect_net_a_sum = get_effects_tuple(mtp_result_net_a_sum, ψ0, n)
 
@@ -208,16 +216,16 @@ mtp_effect_net_a_sum = get_effects_tuple(mtp_result_net_a_sum, ψ0, n)
 
 ```{julia}
 
-mach_net_os = machine(mtp, ct2, AdditiveShift(1.0)) |> fit!
-mtp_result_net_a_os = getestimate(ModifiedTreatment.estimate(mach_net_os, AdditiveShift(1.0)))
+mach_net_os = machine(mtp, ct2, shift) |> fit!
+mtp_result_net_a_os = getestimate(ModifiedTreatment.estimate(mach_net_os, shift))
 mtp_effect_net_a_os = get_effects_tuple(mtp_result_net_a_os, ψ0, n)
 
 ```
 
 ```{julia}
-ests = [mtp_effect_net_a_sum, mtp_effect_net_a_os, mtp_effect_a, ols_effect]
+ests = [mtp_effect_net_a_sum, mtp_effect_net_a_os, mtp_effect_a, glm_effect_a]
 
-tbl = (method = ["Network MTP (Sum)", "Network MTP (Order Statistics)", "MTP", "Linear Regression"], effects = map(x -> x.est, ests), upper = map(x -> x.upper, ests), lower = map(x -> x.lower, ests))
+tbl = (method = ["Induced MTP (Sum)", "Induced MTP (Trimmed)", "MTP (No Interference)", "GLM (No Interference)"], effects = map(x -> x.est, ests), upper = map(x -> x.upper, ests), lower = map(x -> x.lower, ests))
 CSV.write(joinpath("results", "mtp_analysis_a.csv"), tbl)
 
 tbl
@@ -229,16 +237,16 @@ Let's also compute an MTP grid and save the results to a .CSV file.
 
 ```{julia}
 est_grid_a = []
-as = 0.0:0.5:10.0
+as = 0.2:0.2:2.0
 for a in as
         shift = AdditiveShift(a)
         mtp_result_a = getestimate(estimate(mach, shift))
         mtp_result_net_a_sum = getestimate(estimate(mach_net_sum, shift))
         mtp_result_net_a_os = getestimate(estimate(mach_net_os, shift))
 
-        push!(est_grid_a, merge((shift = a, name = "TMLE"), get_effects_tuple(mtp_result_a, ψ0, n)))
-        push!(est_grid_a, merge((shift = a, name = "Network TMLE (Sum)"), get_effects_tuple(mtp_result_net_a_sum, ψ0, n)))
-        push!(est_grid_a, merge((shift = a, name = "Network TMLE (Order Statistics)"), get_effects_tuple(mtp_result_net_a_os, ψ0, n)))
+        push!(est_grid_a, merge((shift = a, name = "MTP (No Interference)"), get_effects_tuple(mtp_result_a, ψ0, n)))
+        push!(est_grid_a, merge((shift = a, name = "Induced MTP (Sum)"), get_effects_tuple(mtp_result_net_a_sum, ψ0, n)))
+        push!(est_grid_a, merge((shift = a, name = "Induced MTP (Trimmed)"), get_effects_tuple(mtp_result_net_a_os, ψ0, n)))
 
 end
 
@@ -262,9 +270,9 @@ mtp_effect_net_m_sum = get_effects_tuple(mtp_result_net_m_sum, ψ0, n)
 mtp_result_net_m_os = getestimate(ModifiedTreatment.estimate(mach_net_os, mshift))
 mtp_effect_net_m_os = get_effects_tuple(mtp_result_net_m_os, ψ0, n)
 
-ests = [mtp_effect_net_m_sum, mtp_effect_net_m_os, mtp_effect_m]
+ests = [mtp_effect_net_m_sum, mtp_effect_net_m_os, mtp_effect_m, glm_effect_m]
 
-tbl = (method = ["Network MTP (Sum)", "Network MTP (Order Statistic)", "MTP"], effects = map(x -> x.est, ests), upper = map(x -> x.upper, ests), lower = map(x -> x.lower, ests))
+tbl = (method = ["Induced MTP (Sum)", "Induced MTP (Trimmed)", "MTP (No Interference)", "GLM (No Interference)"], effects = map(x -> x.est, ests), upper = map(x -> x.upper, ests), lower = map(x -> x.lower, ests))
 CSV.write(joinpath("results", "mtp_analysis_m.csv"), tbl)
 
 
@@ -274,18 +282,100 @@ CSV.write(joinpath("results", "mtp_analysis_m.csv"), tbl)
 ```{julia}
 
 est_grid_m = []
-as = 0.0:0.1:1.0
+as = 0.04:0.04:0.4
 for a in as
         shift = MultiplicativeShift(1.0 + a)
         mtp_result_m = getestimate(estimate(mach, shift))
         mtp_result_net_m_sum = getestimate(estimate(mach_net_sum, shift))
         mtp_result_net_m_os = getestimate(estimate(mach_net_os, shift))
 
-        push!(est_grid_m, merge((shift = a, name = "TMLE"), get_effects_tuple(mtp_result_m, ψ0, n)))
-        push!(est_grid_m, merge((shift = a, name = "Network TMLE (Sum)"), get_effects_tuple(mtp_result_net_m_sum, ψ0, n)))
-        push!(est_grid_m, merge((shift = a, name = "Network TMLE (Order Statistics)"), get_effects_tuple(mtp_result_net_m_os, ψ0, n)))
+        push!(est_grid_m, merge((shift = a, name = "MTP (No Interference)"), get_effects_tuple(mtp_result_m, ψ0, n)))
+        push!(est_grid_m, merge((shift = a, name = "Induced MTP (Sum)"), get_effects_tuple(mtp_result_net_m_sum, ψ0, n)))
+        push!(est_grid_m, merge((shift = a, name = "Induced MTP (Trimmed)"), get_effects_tuple(mtp_result_net_m_os, ψ0, n)))
 end
 
 CSV.write(joinpath("results", "mtp_grid_m.csv"), est_grid_m)
+
+```
+
+Do everything again but this time use the covariate-conditional variance
+
+```{julia}
+function get_effects_tuple(mtp_result, ψ0, n)
+        mtp_ψ = mtp_result.tmle.ψ .- ψ0
+        ciwidth = 1.96 * sqrt(mtp_result.tmle.σ2cond / n)
+        (est = mtp_ψ, lower = mtp_ψ - ciwidth, upper = mtp_ψ + ciwidth)
+end
+
+```
+
+```{julia}
+
+ashift = AdditiveShift(1.0)
+
+mtp_result_a = getestimate(ModifiedTreatment.estimate(mach, mshift))
+mtp_effect_a = get_effects_tuple(mtp_result_m, ψ0, n)
+
+mtp_result_net_a_sum = getestimate(ModifiedTreatment.estimate(mach_net_sum, mshift))
+mtp_effect_net_a_sum = get_effects_tuple(mtp_result_net_a_sum, ψ0, n)
+
+mtp_result_net_a_os = getestimate(ModifiedTreatment.estimate(mach_net_os, mshift))
+mtp_effect_net_a_os = get_effects_tuple(mtp_result_net_a_os, ψ0, n)
+
+ests = [mtp_effect_net_a_sum, mtp_effect_net_a_os, mtp_effect_a, glm_effect_a]
+
+tbl = (method = ["Induced MTP (Sum)", "Induced MTP (Trimmed)", "MTP (No Interference)", "GLM (No Interference)"], effects = map(x -> x.est, ests), upper = map(x -> x.upper, ests), lower = map(x -> x.lower, ests))
+CSV.write(joinpath("results", "mtp_analysis_a_cond.csv"), tbl)
+
+
+mshift = MultiplicativeShift(1.2)
+
+mtp_result_m = getestimate(ModifiedTreatment.estimate(mach, mshift))
+mtp_effect_m = get_effects_tuple(mtp_result_m, ψ0, n)
+
+mtp_result_net_m_sum = getestimate(ModifiedTreatment.estimate(mach_net_sum, mshift))
+mtp_effect_net_m_sum = get_effects_tuple(mtp_result_net_m_sum, ψ0, n)
+
+mtp_result_net_m_os = getestimate(ModifiedTreatment.estimate(mach_net_os, mshift))
+mtp_effect_net_m_os = get_effects_tuple(mtp_result_net_m_os, ψ0, n)
+
+ests = [mtp_effect_net_m_sum, mtp_effect_net_m_os, mtp_effect_m, glm_effect_m]
+
+tbl = (method = ["Induced MTP (Sum)", "Induced MTP (Trimmed)", "MTP (No Interference)", "GLM (No Interference)"], effects = map(x -> x.est, ests), upper = map(x -> x.upper, ests), lower = map(x -> x.lower, ests))
+CSV.write(joinpath("results", "mtp_analysis_m_cond.csv"), tbl)
+```
+
+```{julia}
+
+est_grid_a = []
+as = 0.2:0.2:2.0
+for a in as
+        shift = AdditiveShift(a)
+        mtp_result_a = getestimate(estimate(mach, shift))
+        mtp_result_net_a_sum = getestimate(estimate(mach_net_sum, shift))
+        mtp_result_net_a_os = getestimate(estimate(mach_net_os, shift))
+
+        push!(est_grid_a, merge((shift = a, name = "MTP (No Interference)"), get_effects_tuple(mtp_result_a, ψ0, n)))
+        push!(est_grid_a, merge((shift = a, name = "Induced MTP (Sum)"), get_effects_tuple(mtp_result_net_a_sum, ψ0, n)))
+        push!(est_grid_a, merge((shift = a, name = "Induced MTP (Trimmed)"), get_effects_tuple(mtp_result_net_a_os, ψ0, n)))
+
+end
+
+CSV.write(joinpath("results", "mtp_grid_a_cond.csv"), est_grid_a)
+
+est_grid_m = []
+as = 0.04:0.04:0.4
+for a in as
+        shift = MultiplicativeShift(1.0 + a)
+        mtp_result_m = getestimate(estimate(mach, shift))
+        mtp_result_net_m_sum = getestimate(estimate(mach_net_sum, shift))
+        mtp_result_net_m_os = getestimate(estimate(mach_net_os, shift))
+
+        push!(est_grid_m, merge((shift = a, name = "MTP (No Interference)"), get_effects_tuple(mtp_result_m, ψ0, n)))
+        push!(est_grid_m, merge((shift = a, name = "Induced MTP (Sum)"), get_effects_tuple(mtp_result_net_m_sum, ψ0, n)))
+        push!(est_grid_m, merge((shift = a, name = "Induced MTP (Trimmed)"), get_effects_tuple(mtp_result_net_m_os, ψ0, n)))
+end
+
+CSV.write(joinpath("results", "mtp_grid_m_cond.csv"), est_grid_m)
 
 ```
