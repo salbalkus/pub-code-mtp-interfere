@@ -7,13 +7,19 @@ library(igraph)
 # 2. Save the network in an edgelist format
 # Load the data and the network
 
-df =  read_csv(here("data-cleaning", "intermediate_data", "ca_zev_no2_confounders_nomissing.csv")) %>% dplyr::select(ZCTA, pct_aut)
+df =  read_csv(here("data-cleaning", "intermediate_data", "ca_zev_no2_confounders_nomissing.csv")) %>% dplyr::select(ZCTA, pct_aut, p__2013)
 
 for(year in c(2013, 2019)){
   net = read_csv(here("data-cleaning", "intermediate_network", paste0("ca_network_", year, ".csv"))) %>%
-    right_join(df, by = join_by(h_zcta == ZCTA)) %>%
-    mutate(weight = jobs * pct_aut / 100) %>%
-    dplyr::select(w_zcta, h_zcta, weight)
+    right_join(df, by = join_by(h_zcta == ZCTA))
+  
+  if(year == 2019){
+    net = net %>% mutate(weight = jobs * pct_aut / 100) %>%
+      dplyr::select(w_zcta, h_zcta, weight)
+  } else {
+    net = net %>% mutate(weight = jobs * p__2013 / 100) %>%
+      dplyr::select(w_zcta, h_zcta, weight)
+  }
   
   normalize = net %>% group_by(w_zcta) %>% summarize(total = sum(weight))
   

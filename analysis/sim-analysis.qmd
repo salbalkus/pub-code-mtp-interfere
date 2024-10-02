@@ -29,9 +29,11 @@ df
 
 ```
 ```{r}
-labels = c("`% Bias`", "`Scaled Abs. Bias`", "`Scaled MSE`", "`Coverage`")
+labels = c("`% Bias`", "`log(√n·|Bias|)`", "`log(n·MSE)`", "`Coverage`")
+
 
 truthdf = read_csv(here("data", paste0("synthetic-truth.csv"))) %>% 
+  mutate(scaled_mse = 0) %>%
   filter(structure == "synthetic-3-stepwise.jl") %>%
   pivot_longer(all_of(c("bias", "scaled_bias", "scaled_mse", "coverage")))
 
@@ -50,6 +52,7 @@ truthdf$network = factor(truthdf$network,
 
 df$scaled_bias = abs(df$scaled_bias)
 df2 = df %>% 
+  mutate(scaled_bias = log(scaled_bias), scaled_mse = log(scaled_mse)) %>%
   pivot_longer(all_of(c("pct_bias", "scaled_bias", "scaled_mse", "coverage"))) %>% 
   select(samples, method, name, value, network) %>%
   filter(method %in% c("tmle", "tmle_iid", "ols"))
@@ -71,12 +74,15 @@ df2$method = factor(df2$method,
 
 ```{r}
 
-theme_set(theme_light(base_size = 10))
+theme_set(theme_light(base_size = 8))
+df2$value_jitter = df2$value
+vals_to_jitter = grepl("log(", df2$name, fixed = T)
+df2$value_jitter[vals_to_jitter] = jitter(df2$value[vals_to_jitter], factor = 1000)
 
 p1 = ggplot(df2) + 
   geom_hline(aes(yintercept = value), color = "gray", data = truthdf) + 
-  geom_line(aes(x = samples, y = value, color = method), linewidth = 0.5) +
-  geom_point(aes(x = samples, y = value, color = method)) +
+  geom_line(aes(x = samples, y = value_jitter, color = method), linewidth = 0.5) +
+  geom_point(aes(x = samples, y = value_jitter, color = method)) +
   facet_grid(rows = vars(name), cols = vars(network), labeller=label_parsed, scales = "free_y") + 
   ylab("") + xlab("Sample Size") + labs(color = "") +
   scale_color_manual(values = c("#002e5c", "#ffa600", "#00aaf5")) + 
@@ -110,5 +116,47 @@ colnames(df) = c("Method", "Learner", "Bias (%)", "Coverage (%)", "MSE")
 
 ```{r}
 stargazer(as.data.frame(df), summary=FALSE)
+```
+
+## One-step
+
+```{r}
+df$scaled_bias = abs(df$scaled_bias)
+df2 = df %>% 
+  pivot_longer(all_of(c("pct_bias", "scaled_bias", "scaled_mse", "coverage"))) %>% 
+  select(samples, method, name, value, network) %>%
+  filter(method %in% c("onestep", "onestep_iid", "ols"))
+
+df2$name = factor(df2$name, 
+                  c("pct_bias", "scaled_bias", "scaled_mse", "coverage"), 
+                  labels = labels)
+
+df2$network = factor(df2$network,
+                    network_names,
+                    labels = network_names_full)
+
+df2$method = factor(df2$method,
+                    c("onestep", "onestep_iid", "ols"),
+                    labels = c(tmle = "Network One-step", tmle_iid = "One-step (No Network)", ols = "Linear Regression (No Network)"))
+```
+
+```{r}
+p3 = ggplot(df2) + 
+  geom_hline(aes(yintercept = value), color = "gray", data = truthdf) + 
+  geom_line(aes(x = samples, y = value, color = method), linewidth = 0.5) +
+  geom_point(aes(x = samples, y = value, color = method)) +
+  facet_grid(rows = vars(name), cols = vars(network), labeller=label_parsed, scales = "free_y") + 
+  ylab("") + xlab("Sample Size") + labs(color = "") +
+  scale_color_manual(values = c("#002e5c", "#ffa600", "#00aaf5")) + 
+  theme(strip.background = element_rect("#EEEEEE", "#d1d1d1"), 
+        strip.text = element_text(colour = 'black'), 
+        legend.position = "bottom",legend.title=element_blank(), 
+        legend.margin=margin(-10,0,0,0),
+        panel.spacing = unit(15, "pt")) +
+  scale_x_continuous(breaks = c(400, 900, 1600, 2500))
+
+ggsave("sim-result-onestep.png", p1, path = here("results"), width = 6, height = 6)
+
+p3
 ```
 

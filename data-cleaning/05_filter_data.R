@@ -32,6 +32,7 @@ ctrl = c(
   "pct_wn_",   # % of Homes Owner-Occupied
   "mdn_hm_",   # Median Home Value
   "pct_aut",   # % Take Automobile to Work
+  "p__2013",   # % Take Automobile to Work, 2013
   "pct_pb_",   # % Take Public Transportation to Work
   "pct_wfh",   # % Work from Home
   "D1C5_IN",   # % Gross Industrial Employment Density

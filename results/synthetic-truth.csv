@@ -1,0 +1,16 @@
+structure,network,bias,scaled_bias,scaled_mse,coverage
+synthetic-2-additive.jl,ws,0,0,0.04523601917674369,0.95
+synthetic-3-stepwise.jl,er,0,0,0.13749832124288597,0.95
+synthetic-2-additive.jl,ba,0,0,0.025114537026605266,0.95
+synthetic-2-additive.jl,er,0,0,0.045220204242885864,0.95
+synthetic-3-stepwise.jl,ws,0,0,0.14631754517674356,0.95
+synthetic-3-stepwise3.jl,er-super2,0,0,1.798502747468154,0.95
+synthetic-3-stepwise.jl,sf-super-fast,0,0,1.5498499815556368,0.95
+synthetic-3-stepwise.jl,er-super-fast,0,0,1.798502747468154,0.95
+synthetic-3-stepwise.jl,ws-super-fast,0,0,2.0053711725556287,0.95
+synthetic-3-stepwise.jl,ws-super5,0,0,2.0053711725556287,0.95
+synthetic-3-stepwise.jl,sf-super5,0,0,1.5498499815556368,0.95
+synthetic-3-stepwise.jl,er-super5,0,0,1.798502747468154,0.95
+synthetic-3-stepwise.jl,sf-super5,0,0,1.5498499815556368,0.95
+synthetic-3-stepwise.jl,er-super5,0,0,1.798502747468154,0.95
+synthetic-3-stepwise.jl,ws-super5,0,0,2.0053711725556287,0.95

@@ -4,6 +4,7 @@ format: html
 engine: julia
 ---
 
+### Load necessary packages
 ```{julia}
 using DrWatson
 quickactivate("analysis", "data-analysis")
@@ -19,15 +20,15 @@ using GLM
 using Tables, TableTransforms
 ```
 
+### Load data
 ```{julia}
 
 # Load the dataframe
 df_raw = CSV.read(joinpath("data","NO2_ZEV_ZCTAs.csv"), DataFrame)
-df = select(sort(df_raw, :ZCTA), Not([:ZCTA, :n2_2019]))
+df = select(sort(df_raw, :ZCTA), Not([:ZCTA, :n2_2019, :p__2013]))
 df[!, "pop"] = float.(df_raw[!, "pop"]);
 
 ```
-
 
 ```{julia}
 net_raw_2019 = CSV.read(joinpath("data","ZEV_commuters_2019.csv"), DataFrame)
@@ -52,13 +53,10 @@ end
 
 neighbors = .!(iszero.(w[1]))
 
-w1_tmp = copy(w[1])
-w1_tmp[w1_tmp .< 0.01] .= 0.0
-neighbors2 = .!(iszero.(w1_tmp))
-
 
 ```
 
+### Clean data
 ```{julia}
 
 # Construct CausalTable with no summarization
@@ -90,34 +88,9 @@ ct = CausalTable(df; treatment = :ZEV_2019_pct, response = :no2,
                                 NtWlkIn_s = CausalTables.Sum(:NtWlkIn, :F)
                 ))
 
-ct2 = CausalTable(df; treatment = :ZEV_2019_pct, response = :no2, 
-                confounders = confounders,
-                arrays = (F = neighbors2, w_2019 = w[1], w_2013 = w[2],), 
-                summaries = (ZEV_2019_sum = Sum(:ZEV_2019_pct, :w_2019),
-                                ZEV_2013_sum = Sum(:ZEV_2013_pct, :w_2013),
-                                nfriends = CausalTables.Friends(:F),
-                                pop_s = CausalTables.AllOrderStatistics(:pop, :F),
-                                medin_g_s = CausalTables.AllOrderStatistics(:medin_g, :F),
-                                pct_cll_s = CausalTables.AllOrderStatistics(:pct_cll, :F),
-                                pct_hgh_s = CausalTables.AllOrderStatistics(:pct_hgh, :F),
-                                pct_wht_s = CausalTables.AllOrderStatistics(:pct_wht, :F),
-                                mdn_ncm_s = CausalTables.AllOrderStatistics(:mdn_ncm, :F),
-                                pct_pvr_s = CausalTables.AllOrderStatistics(:pct_pvr, :F),
-                                pct_wn__s = CausalTables.AllOrderStatistics(:pct_wn_, :F),
-                                mdn_hm__s = CausalTables.AllOrderStatistics(:mdn_hm_, :F),
-                                pct_aut_s = CausalTables.AllOrderStatistics(:pct_aut, :F),
-                                pct_pb_s = CausalTables.AllOrderStatistics(:pct_pb_, :F),
-                                pct_wfh_s = CausalTables.AllOrderStatistics(:pct_wfh, :F),
-                                D1C5_IN_s = CausalTables.AllOrderStatistics(:D1C5_IN, :F),
-                                D3A_s = CausalTables.AllOrderStatistics(:D3A, :F),
-                                D4C_s = CausalTables.AllOrderStatistics(:D4C, :F),
-                                NtWlkIn_s = CausalTables.AllOrderStatistics(:NtWlkIn, :F)
-                ))
-
 ```
 
-Let's test out a linear regression.
-
+## Linear regression
 
 ```{julia}
 Xtbl = CausalTables.responseparents(ct_nosum)
@@ -139,9 +112,8 @@ glm_effect_m = (est = coef(glm_m)[1],
 
 ```
 
-
-Baseline comparison function
-
+## Baseline comparision function
+We define this function to aid result aggregation. 
 ```{julia}
 # Compute effect
 ψ0 = mean(df.no2)
@@ -154,7 +126,9 @@ end
 
 ```
 
-MTP
+## MTP
+
+First, define the super learners.
 
 ```{julia}
 XGBoostRegressor = @load XGBoostRegressor pkg=XGBoost
@@ -190,13 +164,12 @@ cv_splitter = CV(nfolds = 5)
 mtp = MTP(mean_estimator, density_ratio_estimator, cv_splitter)
 ```
 
-First we run the MTP with no summarized features (assuming SUTVA)
+Then, we run the MTP with no summarized features (assuming SUTVA).
 
 ```{julia}
 shift = AdditiveShift(1.0)
 mach = machine(mtp, ct_nosum, shift) |> fit!
 ```
-
 
 ```{julia}
 mtp_result_a = getestimate(ModifiedTreatment.estimate(mach, shift))
@@ -204,7 +177,7 @@ mtp_effect_a = get_effects_tuple(mtp_result_a, ψ0, n)
 
 ```
 
-Next we run the MTP on the summarized data
+Next, we run the MTP on the summarized data.
 
 ```{julia}
 
@@ -215,17 +188,9 @@ mtp_effect_net_a_sum = get_effects_tuple(mtp_result_net_a_sum, ψ0, n)
 ```
 
 ```{julia}
+ests = [mtp_effect_net_a_sum, mtp_effect_a, glm_effect_a]
 
-mach_net_os = machine(mtp, ct2, shift) |> fit!
-mtp_result_net_a_os = getestimate(ModifiedTreatment.estimate(mach_net_os, shift))
-mtp_effect_net_a_os = get_effects_tuple(mtp_result_net_a_os, ψ0, n)
-
-```
-
-```{julia}
-ests = [mtp_effect_net_a_sum, mtp_effect_net_a_os, mtp_effect_a, glm_effect_a]
-
-tbl = (method = ["Induced MTP (Sum)", "Induced MTP (Trimmed)", "MTP (No Interference)", "GLM (No Interference)"], effects = map(x -> x.est, ests), upper = map(x -> x.upper, ests), lower = map(x -> x.lower, ests))
+tbl = (method = ["Induced MTP (Sum)", "MTP (No Interference)", "GLM (No Interference)"], effects = map(x -> x.est, ests), upper = map(x -> x.upper, ests), lower = map(x -> x.lower, ests))
 CSV.write(joinpath("results", "mtp_analysis_a.csv"), tbl)
 
 tbl
@@ -242,11 +207,9 @@ for a in as
         shift = AdditiveShift(a)
         mtp_result_a = getestimate(estimate(mach, shift))
         mtp_result_net_a_sum = getestimate(estimate(mach_net_sum, shift))
-        mtp_result_net_a_os = getestimate(estimate(mach_net_os, shift))
 
         push!(est_grid_a, merge((shift = a, name = "MTP (No Interference)"), get_effects_tuple(mtp_result_a, ψ0, n)))
         push!(est_grid_a, merge((shift = a, name = "Induced MTP (Sum)"), get_effects_tuple(mtp_result_net_a_sum, ψ0, n)))
-        push!(est_grid_a, merge((shift = a, name = "Induced MTP (Trimmed)"), get_effects_tuple(mtp_result_net_a_os, ψ0, n)))
 
 end
 
@@ -267,18 +230,15 @@ mtp_effect_m = get_effects_tuple(mtp_result_m, ψ0, n)
 mtp_result_net_m_sum = getestimate(ModifiedTreatment.estimate(mach_net_sum, mshift))
 mtp_effect_net_m_sum = get_effects_tuple(mtp_result_net_m_sum, ψ0, n)
 
-mtp_result_net_m_os = getestimate(ModifiedTreatment.estimate(mach_net_os, mshift))
-mtp_effect_net_m_os = get_effects_tuple(mtp_result_net_m_os, ψ0, n)
+ests = [mtp_effect_net_m_sum, mtp_effect_m, glm_effect_m]
 
-ests = [mtp_effect_net_m_sum, mtp_effect_net_m_os, mtp_effect_m, glm_effect_m]
-
-tbl = (method = ["Induced MTP (Sum)", "Induced MTP (Trimmed)", "MTP (No Interference)", "GLM (No Interference)"], effects = map(x -> x.est, ests), upper = map(x -> x.upper, ests), lower = map(x -> x.lower, ests))
+tbl = (method = ["Induced MTP (Sum)", "MTP (No Interference)", "GLM (No Interference)"], effects = map(x -> x.est, ests), upper = map(x -> x.upper, ests), lower = map(x -> x.lower, ests))
 CSV.write(joinpath("results", "mtp_analysis_m.csv"), tbl)
 
 
 ```
 
-
+Finally, let's compute the same estimates, except across a grid of possible shifts for the multiplicative shifts as well.
 ```{julia}
 
 est_grid_m = []
@@ -287,95 +247,11 @@ for a in as
         shift = MultiplicativeShift(1.0 + a)
         mtp_result_m = getestimate(estimate(mach, shift))
         mtp_result_net_m_sum = getestimate(estimate(mach_net_sum, shift))
-        mtp_result_net_m_os = getestimate(estimate(mach_net_os, shift))
 
         push!(est_grid_m, merge((shift = a, name = "MTP (No Interference)"), get_effects_tuple(mtp_result_m, ψ0, n)))
         push!(est_grid_m, merge((shift = a, name = "Induced MTP (Sum)"), get_effects_tuple(mtp_result_net_m_sum, ψ0, n)))
-        push!(est_grid_m, merge((shift = a, name = "Induced MTP (Trimmed)"), get_effects_tuple(mtp_result_net_m_os, ψ0, n)))
 end
 
 CSV.write(joinpath("results", "mtp_grid_m.csv"), est_grid_m)
-
-```
-
-Do everything again but this time use the covariate-conditional variance
-
-```{julia}
-function get_effects_tuple(mtp_result, ψ0, n)
-        mtp_ψ = mtp_result.tmle.ψ .- ψ0
-        ciwidth = 1.96 * sqrt(mtp_result.tmle.σ2cond / n)
-        (est = mtp_ψ, lower = mtp_ψ - ciwidth, upper = mtp_ψ + ciwidth)
-end
-
-```
-
-```{julia}
-
-ashift = AdditiveShift(1.0)
-
-mtp_result_a = getestimate(ModifiedTreatment.estimate(mach, mshift))
-mtp_effect_a = get_effects_tuple(mtp_result_m, ψ0, n)
-
-mtp_result_net_a_sum = getestimate(ModifiedTreatment.estimate(mach_net_sum, mshift))
-mtp_effect_net_a_sum = get_effects_tuple(mtp_result_net_a_sum, ψ0, n)
-
-mtp_result_net_a_os = getestimate(ModifiedTreatment.estimate(mach_net_os, mshift))
-mtp_effect_net_a_os = get_effects_tuple(mtp_result_net_a_os, ψ0, n)
-
-ests = [mtp_effect_net_a_sum, mtp_effect_net_a_os, mtp_effect_a, glm_effect_a]
-
-tbl = (method = ["Induced MTP (Sum)", "Induced MTP (Trimmed)", "MTP (No Interference)", "GLM (No Interference)"], effects = map(x -> x.est, ests), upper = map(x -> x.upper, ests), lower = map(x -> x.lower, ests))
-CSV.write(joinpath("results", "mtp_analysis_a_cond.csv"), tbl)
-
-
-mshift = MultiplicativeShift(1.2)
-
-mtp_result_m = getestimate(ModifiedTreatment.estimate(mach, mshift))
-mtp_effect_m = get_effects_tuple(mtp_result_m, ψ0, n)
-
-mtp_result_net_m_sum = getestimate(ModifiedTreatment.estimate(mach_net_sum, mshift))
-mtp_effect_net_m_sum = get_effects_tuple(mtp_result_net_m_sum, ψ0, n)
-
-mtp_result_net_m_os = getestimate(ModifiedTreatment.estimate(mach_net_os, mshift))
-mtp_effect_net_m_os = get_effects_tuple(mtp_result_net_m_os, ψ0, n)
-
-ests = [mtp_effect_net_m_sum, mtp_effect_net_m_os, mtp_effect_m, glm_effect_m]
-
-tbl = (method = ["Induced MTP (Sum)", "Induced MTP (Trimmed)", "MTP (No Interference)", "GLM (No Interference)"], effects = map(x -> x.est, ests), upper = map(x -> x.upper, ests), lower = map(x -> x.lower, ests))
-CSV.write(joinpath("results", "mtp_analysis_m_cond.csv"), tbl)
-```
-
-```{julia}
-
-est_grid_a = []
-as = 0.2:0.2:2.0
-for a in as
-        shift = AdditiveShift(a)
-        mtp_result_a = getestimate(estimate(mach, shift))
-        mtp_result_net_a_sum = getestimate(estimate(mach_net_sum, shift))
-        mtp_result_net_a_os = getestimate(estimate(mach_net_os, shift))
-
-        push!(est_grid_a, merge((shift = a, name = "MTP (No Interference)"), get_effects_tuple(mtp_result_a, ψ0, n)))
-        push!(est_grid_a, merge((shift = a, name = "Induced MTP (Sum)"), get_effects_tuple(mtp_result_net_a_sum, ψ0, n)))
-        push!(est_grid_a, merge((shift = a, name = "Induced MTP (Trimmed)"), get_effects_tuple(mtp_result_net_a_os, ψ0, n)))
-
-end
-
-CSV.write(joinpath("results", "mtp_grid_a_cond.csv"), est_grid_a)
-
-est_grid_m = []
-as = 0.04:0.04:0.4
-for a in as
-        shift = MultiplicativeShift(1.0 + a)
-        mtp_result_m = getestimate(estimate(mach, shift))
-        mtp_result_net_m_sum = getestimate(estimate(mach_net_sum, shift))
-        mtp_result_net_m_os = getestimate(estimate(mach_net_os, shift))
-
-        push!(est_grid_m, merge((shift = a, name = "MTP (No Interference)"), get_effects_tuple(mtp_result_m, ψ0, n)))
-        push!(est_grid_m, merge((shift = a, name = "Induced MTP (Sum)"), get_effects_tuple(mtp_result_net_m_sum, ψ0, n)))
-        push!(est_grid_m, merge((shift = a, name = "Induced MTP (Trimmed)"), get_effects_tuple(mtp_result_net_m_os, ψ0, n)))
-end
-
-CSV.write(joinpath("results", "mtp_grid_m_cond.csv"), est_grid_m)
 
 ```

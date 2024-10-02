@@ -41,6 +41,7 @@ while(nrow(interp[rowSums(is.na(interp)) > 0,]) < prev){
            mdn_hm_ = neighbor_mean(interp, mdn_hm_, ALAND10),
            mdn_ncm = neighbor_mean(interp, mdn_ncm, ALAND10),
            pct_aut = neighbor_mean(interp, pct_aut, ALAND10),
+           p__2013 = neighbor_mean(interp, p__2013, ALAND10),
            pct_pb_ = neighbor_mean(interp, pct_pb_, ALAND10),
            pct_wfh = neighbor_mean(interp, pct_wfh, ALAND10),
            pct_pvr = neighbor_mean(interp, pct_pvr, ALAND10),
@@ -53,8 +54,6 @@ while(nrow(interp[rowSums(is.na(interp)) > 0,]) < prev){
     )
   i <- i + 1
 }
-
-# It should take 5 iterations to not change
 
 # There are 15 ZCTAs that cannot be interpolated since they do not neighbor any ZCTAs
 sum(sapply(index, length) == 0)

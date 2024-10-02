@@ -173,6 +173,8 @@ get_econ_year <- function(year){
 
 # Get the economic data for 2019
 zcta_econ <- get_econ_year(2019)
+zcta_econ <- zcta_econ %>% left_join(get_econ_year(2013) %>% dplyr::select(GEOID = GEOID, pct_auto_2013 = pct_auto))
+
 
 # join the population, sociodemographic, and economic variables into a table of covariates
 #zcta_covariates <- zcta_pop %>% 
