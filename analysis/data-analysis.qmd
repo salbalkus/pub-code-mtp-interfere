@@ -1,7 +1,6 @@
 ---
 title: "OLS"
 format: html
-editor: visual
 ---
 
 ```{r}
@@ -73,7 +72,7 @@ p = ggplot(df_shp) + geom_sf(aes(geometry=geometry, fill = no2), color = NA) +
       values=rescale(c(-3.1,0,1.1)),
       limits=c(-3.1,1.1), oob = scales::squish
     )
-ggsave(here("results", "CA-NO2.png"), plot = p, width = 5, height = 5, units = "in", dpi = 400)
+ggsave(here("results", "CA-NO2.svg"), plot = p, width = 5, height = 5, units = "in", dpi = 400)
 p
 
 ```
@@ -97,7 +96,7 @@ p = ggplot(df_shp) + geom_sf(aes(geometry=geometry, fill = ZEV_2019), color = NA
     limits=c(0,21), oob = scales::squish, 
   )
 
-ggsave(here("results", "CA-ZEV.png"), plot = p, width = 5, height = 5, units = "in", dpi = 400)
+ggsave(here("results", "CA-ZEV.svg"), plot = p, width = 5, height = 5, units = "in", dpi = 400)
 p
 ```
 
@@ -135,10 +134,9 @@ p = ggplot(estimate_df) +
   ylab("") + xlab("Mean NO₂ reduction, 2013-2019 (ppb)") +
   scale_color_manual(values=group.colors)
 p
-ggsave(here("results", "data-MTP-comparison.png"), p, width = 8, height = 4, dpi = 400)
+ggsave(here("results", "data-MTP-comparison.svg"), p, width = 8, height = 4, dpi = 400)
 
 ```
-
 
 ## Figure 3: MTP Grid
 
@@ -199,6 +197,6 @@ p = ggplot(grid_df, aes(x = shift, y = est)) +
 
 
 p
-here("results", "data-MTP-grid.png")
-ggsave(here("results", "data-MTP-grid2.png"), width = 6, height = 3, dpi = 400)
+here("results", "data-MTP-grid.svg")
+ggsave(here("results", "data-MTP-grid2.svg"), width = 6, height = 3, dpi = 400)
 ```

@@ -5,9 +5,9 @@ function simulate_truth(config::Dict)
 
     # Compute ground truth
     # need to recompile via Base.invokelatest due to dgp being loaded later
-    data = Base.invokelatest(rand, scm, config["ntruth"]) 
+    dat = Base.invokelatest(rand, scm, config["ntruth"]) 
     println("Computing $(intervention)")
-    ψ, eff_bound = Base.invokelatest(compute_true_MTP, scm, data, intervention)
+    ψ, eff_bound = Base.invokelatest(compute_true_MTP, scm, dat, intervention)
 
     # Save the ground truth as a Julia object into data/truth
     truth = Dict(

@@ -104,7 +104,10 @@ Fits an MTP to the data in `config` and computes causal estimates.
 """
 function simulate_mtp_fit(config, iid = false)
     # Fit MTP
-    data = iid ? CausalTables.replace(config["data"]; summaries = (;), confounders = setdiff(config["data"].confounders, keys(config["data"].summaries))) : config["data"]
+    no_summaries = setdiff(keys(config["data"].causes), keys(config["data"].summaries))
+    new_causes = NamedTupleTools.select(config["data"].causes, no_summaries)
+    new_treatment = intersect(config["data"].treatment, no_summaries)
+    data = iid ? CausalTables.replace(config["data"]; treatment = new_treatment, summaries = (;), causes = new_causes) : config["data"]
     mtpmach = machine(config["mtp"], data, config["intervention"]) |> fit!
     
     # Compute causal estimates
@@ -122,17 +125,18 @@ end
 
 function simulate_ols_fit(config)
 
-    length(config["data"].treatment) > 1 && error("OLS can only handle one treatment variable.")
+    # Only consider the effect of the first treatment
+    iid_treatment = intersect(config["data"].treatment, setdiff(keys(config["data"].causes), keys(config["data"].summaries)))[1]
 
     # Find the treatment index, and add 1 to account for intercept in OLS model
-    treatment_index = findlast(x -> x == config["data"].treatment[1], Tables.columnnames(config["data"]))
+    treatment_index = findlast(x -> x == iid_treatment, Tables.columnnames(config["data"]))
 
     X = Tables.matrix(CausalTables.responseparents(config["data"]))
     y = vec(Tables.matrix(CausalTables.response(config["data"])))
 
     ols = lm(X, y)
     ψ = coef(ols)[treatment_index] * config["intervention"].δb(nothing) + mean(y)
-    σ2 = stderror(ols)[treatment_index] * config["intervention"].δb(nothing)
+    σ2 = (stderror(ols)[treatment_index] * config["intervention"].δb(nothing))^2
 
     DataFrame(
             estimate = ["ψ", "σ2", "σ2net"],

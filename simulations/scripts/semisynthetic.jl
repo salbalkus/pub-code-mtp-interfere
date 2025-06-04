@@ -39,14 +39,14 @@ netname = "approx=$(k)"
 include(scriptsdir("auxiliary", "2-run-simulation-linear.jl"))
 
 tbl = opchars(result, config; varsymb = :σ2, methodnames = ["tmle", "tmle_iid", "ols"])
-tbl2 = select(tbl, [:method, :bias, :pct_bias, :variance, :coverage])
+tbl2 = DataFrames.select(tbl, [:method, :bias, :pct_bias, :variance, :coverage])
 
 # Super Learning
 netname = "approx=$(k);super"
 include(scriptsdir("auxiliary", "2-run-simulation.jl"))
 config
 tbl_super = opchars(result, config; varsymb = :σ2, methodnames = ["tmle", "tmle_iid", "ols"])
-tbl2_super = select(tbl_super, [:method, :bias, :pct_bias, :variance, :coverage])
+tbl2_super = DataFrames.select(tbl_super, [:method, :bias, :pct_bias, :variance, :coverage])
 
 tbl2_super[!, "method"] = tbl2_super[!, "method"] .* "_super"
 tbl_final = vcat(tbl2, tbl2_super[1:2, :])

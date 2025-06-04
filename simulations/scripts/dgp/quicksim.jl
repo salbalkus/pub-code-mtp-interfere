@@ -7,7 +7,6 @@ scm = StructuralCausalModel(
         Y ~ (@. Normal(L + A + 10, 1))
     ),
     treatment = :A,
-    response = :Y,
-    confounders = [:L]
+    response = :Y
 )
-intervention = AdditiveShift(0.1)
+intervention = AdditiveShift(1.0)

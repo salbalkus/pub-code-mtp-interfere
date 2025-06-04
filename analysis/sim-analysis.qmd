@@ -67,14 +67,14 @@ df2$network = factor(df2$network,
 
 df2$method = factor(df2$method,
                     c("tmle", "tmle_iid", "ols"),
-                    labels = c(tmle = "Network TMLE", tmle_iid = "TMLE (No Network)", ols = "Linear Regression (No Network)"))
+                    labels = c(tmle = "Network-TMLE", tmle_iid = "TMLE (No Network)", ols = "Linear Regression (No Network)"))
 
 
 ```
 
 ```{r}
 
-theme_set(theme_light(base_size = 8))
+theme_set(theme_light(base_size = 10))
 df2$value_jitter = df2$value
 vals_to_jitter = grepl("log(", df2$name, fixed = T)
 df2$value_jitter[vals_to_jitter] = jitter(df2$value[vals_to_jitter], factor = 1000)

@@ -4,6 +4,6 @@ using DrWatson
 include(scriptsdir("auxiliary", "1-setup.jl"))
 
 name = "quicksimnet.jl"
-config_name = "er"
+netname = "er"
 
-include(scriptsdir("auxiliary", "2-run-simulation-linear"))
+include(scriptsdir("auxiliary", "2-run-simulation-linear.jl"))
