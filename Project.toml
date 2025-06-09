@@ -1,0 +1,4 @@
+[deps]
+CausalTables = "6af48e0c-efc2-4bf7-a92f-a553ccf79fd6"
+Condensity = "4a3ed1f2-33f5-4d2a-92e9-d08cf3575152"
+ModifiedTreatment = "850ff2fb-1851-4098-84a9-06d36a9b9803"

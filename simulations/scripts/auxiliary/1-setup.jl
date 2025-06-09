@@ -12,9 +12,8 @@ disable_logging(Logging.Info)
 disable_logging(Logging.Warn)
 
 # Set ground truth parameters
-seed = 1
+seed = 126
 ntruth = 10^6
-
 samples = [100, 900, 2500]
 nreps = 500
 bootstrap = BasicSampler()

@@ -17,10 +17,11 @@ net.h_zcta = map(x -> zctas_dict[x], net.h_zcta)
 
 # Construct graph and extract weight matrix
 g = SimpleWeightedDiGraph(net.w_zcta, net.h_zcta, net.weight)
-neighbors = (g.weights .> 0.05)
+neighbors = (g.weights .> 0.05) # trims nodes with very few commuters
 n = nv(g)
-L = Tables.matrix(df)[:, 1:16]  # Use only the first 16 columns for the model
+L = Tables.matrix(df)[:, 1:16]  # Select the first 16 columns as confounders for the model
 
+# Define the linear model
 β = [0.0001, 0.1, 1.0, 0.1, 0.1, 0.0001, 0.1, 0.1, 0.00001, 0.1, 0.1, 1.0, 1.0, 0.1, 0.1, 0.1]
 reg = L * β
 
