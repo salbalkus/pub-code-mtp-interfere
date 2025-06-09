@@ -4,7 +4,7 @@ using DrWatson
 include(scriptsdir("auxiliary", "1-setup.jl"))
 
 getgraph(n) = static_scale_free(n, 2 * n, 3.5)
-name = "synthetic-3-stepwise.jl"
+name = "synthetic-3-stepwise-trunc.jl"
 netname = "sf-super-fast"
 
 include(scriptsdir("auxiliary", "2-run-simulation.jl"))
