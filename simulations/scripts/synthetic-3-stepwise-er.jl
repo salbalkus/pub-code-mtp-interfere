@@ -4,7 +4,7 @@ using DrWatson
 include(scriptsdir("auxiliary", "1-setup.jl"))
 
 getgraph(n) = erdos_renyi(n, 4/n)
-name = "synthetic-3-stepwise-trunc.jl"
+name = "synthetic-3-stepwise-cosine.jl"
 netname = "er-super-fast"
 
 include(scriptsdir("auxiliary", "2-run-simulation.jl"))

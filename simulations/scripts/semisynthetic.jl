@@ -5,7 +5,7 @@ using Random, GLM
 
 include(scriptsdir("auxiliary", "1-setup.jl"))
 
-name = "semisynthetic-trunc.jl"
+name = "semisynthetic-cosine.jl"
 include(scriptsdir("dgp", "$(name)")) # load `dgp` and `intervention`
 ntruth = n
 samples = [n]

@@ -3,7 +3,6 @@ authors = ["Salvador Balkus"]
 
 [deps]
 BSON = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"
-BetaML = "024491cd-cc6b-443e-8034-08ea7eb7db2b"
 CRC32 = "b4567568-9dcc-467e-9b62-c342d3a501d3"
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 CausalTables = "6af48e0c-efc2-4bf7-a92f-a553ccf79fd6"

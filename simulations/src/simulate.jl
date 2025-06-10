@@ -136,7 +136,7 @@ function simulate_ols_fit(config)
 
     ols = lm(X, y)
     ψ = coef(ols)[treatment_index] * config["intervention"].δb(nothing) + mean(y)
-    σ2 = (stderror(ols)[treatment_index] * config["intervention"].δb(nothing))^2
+    σ2 = var(y)/size(X, 1) + (stderror(ols)[treatment_index] * config["intervention"].δb(nothing))^2
 
     DataFrame(
             estimate = ["ψ", "σ2", "σ2net"],
