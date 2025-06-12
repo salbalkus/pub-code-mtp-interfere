@@ -37,11 +37,12 @@ many_summaries = DataGeneratingProcess(
 
 many_variables = merge(many_distributions, many_summaries)
 
+σ = 1
 final_output = @dgp(
     F $ Friends(:G),
     A ~ (@. Normal(0.01 * reg, 1.0)),
     As $ Sum(:A, :G),
-    Y ~ (@. truncated(Normal(A + As + 0.1 * reg, 1.0), A + As + 0.1 * reg - 3, A + As + 0.1 * reg + 3))
+    Y ~ (@. truncated(Normal(A + As + 0.1 * reg, σ), A + As + 0.1 * reg - (6*σ), A + As + 0.1 * reg + (6*σ)))
 )
 
 scm = StructuralCausalModel(

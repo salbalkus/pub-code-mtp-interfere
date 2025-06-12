@@ -1,3 +1,5 @@
+
+σ = 1.0
 scm = StructuralCausalModel(
     @dgp(
         L1 ~ Beta(3,2),
@@ -12,22 +14,22 @@ scm = StructuralCausalModel(
         L3o $ AllOrderStatistics(:L3, :G),
         L4o $ AllOrderStatistics(:L4, :G),
 
-        L1step = (@. (L1 > 0.4) + (L1 > 0.6) + (L1 + 0.8)),
-        L2step = (@. (L2 > 50) + (L2 > 100)  + (L2 > 200)),
-        L3step = (@. (L3 > 0.1) + (L3 > 0.5) + (L3 > 1) + (L3 > 4) + (L3 > 10)),
+        L1step = (@. (L1 > 0.2) + (L1 > 0.4) + (L1 > 0.6) + (L1 > 0.8)),
+        L2step = (@. (L2 > 25) + (L2 > 50) + (L2 > 100)  + (L2 > 200)),
+        L3step = (@. (L3 > 0.1) + (L3 > 0.5) + (L3 > 1) + (L3 > 2) + (L3 > 4) + (L3 > 8)),
 
-        nonlin = (@. L4 + L4 * L1step + L2step + L3step),
-        A ~ Normal.(0.1 * nonlin, 1.0),
+        nonlin = (@. L4 - L4 * L1step - L4 * L2step + L1step + L2step + L3step),
+        A ~ Normal.(0.5 * nonlin, 1.0),
         As $ Sum(:A, :G),
         Y ~ (@. truncated(Normal(0.2 * ((A > 0) + (A > 0.5) + 2 * (A > 0.75) + 3 * (A > 1) + 4 * (A > 1.25) + 5 * (A > 2)) + 
-                        1.0 * ((As > 0) + (As > 1) + 2 * (As > 2) + 3 * (As > 3) + 4 * (As > 4) + 5 * (As > 5)) + 
-                        0.2 * nonlin, 0.1), 
+                        0.4 * ((As > 0) + (As > 1) + 2 * (As > 2) + 3 * (As > 3) + 4 * (As > 4) + 5 * (As > 5)) + 
+                        0.4 * nonlin, σ), 
                         0.2 * ((A > 0) + (A > 0.5) + 2 * (A > 0.75) + 3 * (A > 1) + 4 * (A > 1.25) + 5 * (A > 2)) + 
-                        1.0 * ((As > 0) + (As > 1) + 2 * (As > 2) + 3 * (As > 3) + 4 * (As > 4) + 5 * (As > 5)) + 
-                        0.2 * nonlin - 0.95, 
+                        0.4 * ((As > 0) + (As > 1) + 2 * (As > 2) + 3 * (As > 3) + 4 * (As > 4) + 5 * (As > 5)) + 
+                        0.4 * nonlin - (6*σ), 
                         0.2 * ((A > 0) + (A > 0.5) + 2 * (A > 0.75) + 3 * (A > 1) + 4 * (A > 1.25) + 5 * (A > 2)) + 
-                        1.0 * ((As > 0) + (As > 1) + 2 * (As > 2) + 3 * (As > 3) + 4 * (As > 4) + 5 * (As > 5)) + 
-                        0.2 * nonlin + 0.95))
+                        0.4 * ((As > 0) + (As > 1) + 2 * (As > 2) + 3 * (As > 3) + 4 * (As > 4) + 5 * (As > 5)) + 
+                        0.4 * nonlin + (6*σ)))
     ),  
     treatment = [:A, :As],
     response = :Y,
