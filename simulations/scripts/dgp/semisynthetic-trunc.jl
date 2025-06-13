@@ -5,7 +5,7 @@ path = joinpath(projectdir(), "..", "data")
 df_raw = CSV.read(joinpath(path, "NO2_ZEV_ZCTAs.csv"), DataFrame)
 df = DataFrames.select(sort(df_raw, :ZCTA), Not([:ZCTA, :n2_2019, :ZEV_2019_pct, :ZEV_2013_pct, :no2]))
 df[!, "pop"] = float.(df_raw[!, "pop"]);
-df = df |> TableTransforms.MinMax()#|> TableTransforms.Center()
+df = df |> TableTransforms.MinMax()#TableTransforms.Center()
 
 # Prepare the network
 net_raw = CSV.read(joinpath(path, "ZEV_commuters_2019.csv"), DataFrame)
@@ -22,8 +22,9 @@ n = nv(g)
 L = Tables.matrix(df)[:, 1:16]  # Select the first 16 columns as confounders for the model
 
 # Define the linear model
-#β = [0.0001, 0.1, 1.0, 0.1, 0.1, 0.0001, 0.1, 0.1, 0.00001, 0.1, 0.1, 1.0, 1.0, 0.1, 0.1, 0.1]
+β = [0.0001, 0.1, 1.0, 0.1, 0.1, 0.0001, 0.1, 0.1, 0.00001, 0.1, 0.1, 1.0, 1.0, 0.1, 0.1, 0.1]
 #reg = L * β
+#reg2 = neighbors * L * β   # Adjust reg2 to account for neighbors
 reg = vec(sum(L, dims=2))  # Use the sum of confounders as the regression term
 reg2 = vec(sum(neighbors * L, dims=2))
 
@@ -39,12 +40,12 @@ many_summaries = DataGeneratingProcess(
 
 many_variables = merge(many_distributions, many_summaries)
 
-σ = 0.1
+σ = 1.0
 final_output = @dgp(
     F $ Friends(:G),
-    A ~ (@. Normal(0.5 * (reg + 5) + 0.05 * reg2, 0.5 * (reg + 5) + 0.05 * reg2)),
+    A ~ (@. Normal(reg + 1, (reg + 1))),
     As $ Sum(:A, :G),
-    Y ~ (@. truncated(Normal(A + 0.1 * As + 0.2 * reg + 0.05 * reg2, σ), A + 0.1 * As + 0.2 * reg + 0.05 * reg2 - (6*σ), A + 0.1 * As + 0.2 * reg + 0.05 * reg2 + (6*σ)))
+    Y ~ (@. truncated(Normal(A + As + reg + reg2, σ), A + As + reg + reg2 - (6*σ), A + As + reg + reg2 + (6*σ)))
 )
 
 confoundersymbs = vcat([Symbol("L$(i)s") for i in 1:16], [Symbol("L$(i)") for i in 1:16], [:F])

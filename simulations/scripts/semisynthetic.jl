@@ -12,8 +12,8 @@ samples = [n]
 config = @strdict name ntruth scm intervention
 
 # Compute the truth assuming an additive intervention
-add_shift = intervention.δb(1)
-ψ = mean((0.5 .* (reg .+ 5) .+ 0.05 .* reg2 .+ add_shift) .* (1.0 .+ 0.1 * vec(sum(neighbors, dims=2))) .+ 0.2 .* reg + 0.05 .* reg2)
+add_shift = intervention.δb(nothing)
+ψ = mean(((reg .+ 1) .+ add_shift) .* (1.0 .+ vec(sum(neighbors, dims=2))) .+ reg .+ reg2)
 #reps = 10000
 #σ2 = mean([var(conmean(scm, rand(scm, 1), :Y)) for i in 1:reps]) / n
 
@@ -21,7 +21,7 @@ add_shift = intervention.δb(1)
 config["ψ"] = ψ
 #config["ψ_dif"] = mean(ψdifs)
 config["eff_bound"] = NaN#σ2
-netname = "finite61"#"reps=$(reps)"
+netname = "finite15"#"reps=$(reps)"
 
 # Correctly-specified linear model
 include(scriptsdir("auxiliary", "2-run-simulation-linear.jl"))
