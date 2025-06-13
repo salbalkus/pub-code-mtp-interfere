@@ -1,3 +1,4 @@
+
 function simulate_truth(config::Dict)
     Random.seed!(config["seed"])
     scm = config["scm"]

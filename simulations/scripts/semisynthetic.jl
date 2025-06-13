@@ -5,47 +5,35 @@ using Random, GLM
 
 include(scriptsdir("auxiliary", "1-setup.jl"))
 
-name = "semisynthetic-cosine.jl"
+name = "semisynthetic-trunc.jl"
 include(scriptsdir("dgp", "$(name)")) # load `dgp` and `intervention`
 ntruth = n
 samples = [n]
-k = 5000
-config = @strdict name ntruth scm intervention k
+config = @strdict name ntruth scm intervention
 
-# Approximate the truth mean using the DGP
-function simulate_truths(config::Dict)
-    seeds = [abs(rand(Int16)) for i in 1:config["k"]]
-    ψs = Vector{Float64}(undef, config["k"])
-    ψdifs = Vector{Float64}(undef, config["k"])
-    for i in 1:config["k"]
-        #println("Running truth simulation $(i)")
-        Random.seed!(seeds[i])
-        ct = rand(config["scm"], config["ntruth"])
-        truth = compute_true_MTP(config["scm"], ct, config["intervention"])
-        ψs[i] = truth.ψ
-        ψdifs[i] = truth.ψ_dif
-    end
-    return ψs, ψdifs
-end
+# Compute the truth assuming an additive intervention
+add_shift = intervention.δb(1)
+ψ = mean((0.5 .* (reg .+ 4) .+ 0.01 .* reg2 .+ add_shift) .* (1.0 .+ vec(sum(neighbors, dims=2))) .+ 0.2 .* reg + 0.01 .* reg2)
+#reps = 10000
+#σ2 = mean([var(conmean(scm, rand(scm, 1), :Y)) for i in 1:reps]) / n
 
-ψs, ψdifs = simulate_truths(config)
 
-config["ψ"] = mean(ψs)
+config["ψ"] = ψ
 #config["ψ_dif"] = mean(ψdifs)
-config["eff_bound"] = NaN
-netname = "approx=$(k)"
+config["eff_bound"] = NaN#σ2
+netname = "finite43"#"reps=$(reps)"
 
 # Correctly-specified linear model
 include(scriptsdir("auxiliary", "2-run-simulation-linear.jl"))
 
-tbl = opchars(result, config; varsymb = :σ2, methodnames = ["tmle", "tmle_iid", "ols"])
-tbl2 = DataFrames.select(tbl, [:method, :bias, :pct_bias, :variance, :coverage])
+tbl = opchars(result, config; varsymb = :σ2net, methodnames = ["tmle", "tmle_iid", "ols"])
+tbl2 = DataFrames.select(tbl, [:method, :bias, :pct_bias, :variance, :coverage, :ci_width])
 
 # Super Learning
 netname = "approx=$(k);super"
 include(scriptsdir("auxiliary", "2-run-simulation.jl"))
 config
-tbl_super = opchars(result, config; varsymb = :σ2, methodnames = ["tmle", "tmle_iid", "ols"])
+tbl_super = opchars(result, config; varsymb = :σ2net, methodnames = ["tmle", "tmle_iid", "ols"])
 tbl2_super = DataFrames.select(tbl_super, [:method, :bias, :pct_bias, :variance, :coverage])
 
 tbl2_super[!, "method"] = tbl2_super[!, "method"] .* "_super"
