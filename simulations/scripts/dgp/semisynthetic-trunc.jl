@@ -39,12 +39,12 @@ many_summaries = DataGeneratingProcess(
 
 many_variables = merge(many_distributions, many_summaries)
 
-σ = 1.0
+σ = 0.1
 final_output = @dgp(
     F $ Friends(:G),
-    A ~ (@. Poisson(0.5 * (reg + 4) + 0.01 * reg2)),
+    A ~ (@. Normal(0.5 * (reg + 5) + 0.05 * reg2, 0.5 * (reg + 5) + 0.05 * reg2)),
     As $ Sum(:A, :G),
-    Y ~ (@. truncated(Normal(A + As + 0.2 * reg + 0.01 * reg2, σ), A + As + 0.2 * reg + 0.01 * reg2 - (6*σ), A + As + 0.2 * reg + 0.01 * reg2 + (6*σ)))
+    Y ~ (@. truncated(Normal(A + 0.1 * As + 0.2 * reg + 0.05 * reg2, σ), A + 0.1 * As + 0.2 * reg + 0.05 * reg2 - (6*σ), A + 0.1 * As + 0.2 * reg + 0.05 * reg2 + (6*σ)))
 )
 
 confoundersymbs = vcat([Symbol("L$(i)s") for i in 1:16], [Symbol("L$(i)") for i in 1:16], [:F])
