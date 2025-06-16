@@ -13,7 +13,7 @@ config = @strdict name ntruth scm intervention
 
 # Compute the truth assuming an additive intervention
 add_shift = intervention.δb(nothing)
-ψ = mean(((reg .+ 1) .+ add_shift) .* (1.0 .+ vec(sum(neighbors, dims=2))) .+ reg .+ reg2)
+ψ = mean(((reg .+ μ) .+ add_shift) .* (1.0 .+ vec(sum(neighbors, dims=1))) .+ reg .+ reg2 .- 200)
 #reps = 10000
 #σ2 = mean([var(conmean(scm, rand(scm, 1), :Y)) for i in 1:reps]) / n
 
@@ -21,7 +21,7 @@ add_shift = intervention.δb(nothing)
 config["ψ"] = ψ
 #config["ψ_dif"] = mean(ψdifs)
 config["eff_bound"] = NaN#σ2
-netname = "finite15"#"reps=$(reps)"
+netname = "finite_Amean=$(μ)"#"reps=$(reps)"
 
 # Correctly-specified linear model
 include(scriptsdir("auxiliary", "2-run-simulation-linear.jl"))
@@ -32,7 +32,7 @@ tbl2 = DataFrames.select(tbl, [:method, :bias, :pct_bias, :variance, :coverage, 
 # Super Learning
 netname = "approx=$(k);super"
 include(scriptsdir("auxiliary", "2-run-simulation.jl"))
-config
+
 tbl_super = opchars(result, config; varsymb = :σ2net, methodnames = ["tmle", "tmle_iid", "ols"])
 tbl2_super = DataFrames.select(tbl_super, [:method, :bias, :pct_bias, :variance, :coverage])
 

@@ -22,11 +22,12 @@ n = nv(g)
 L = Tables.matrix(df)[:, 1:16]  # Select the first 16 columns as confounders for the model
 
 # Define the linear model
-β = [0.0001, 0.1, 1.0, 0.1, 0.1, 0.0001, 0.1, 0.1, 0.00001, 0.1, 0.1, 1.0, 1.0, 0.1, 0.1, 0.1]
+#β = [0.0001, 0.1, 1.0, 0.1, 0.1, 0.0001, 0.1, 0.1, 0.00001, 0.1, 0.1, 1.0, 1.0, 0.1, 0.1, 0.1]
 #reg = L * β
 #reg2 = neighbors * L * β   # Adjust reg2 to account for neighbors
 reg = vec(sum(L, dims=2))  # Use the sum of confounders as the regression term
 reg2 = vec(sum(neighbors * L, dims=2))
+μ = 0
 
 many_distributions = DataGeneratingProcess(
     [Symbol("L", i) for i in 1:size(L, 2)],
@@ -43,9 +44,9 @@ many_variables = merge(many_distributions, many_summaries)
 σ = 1.0
 final_output = @dgp(
     F $ Friends(:G),
-    A ~ (@. Normal(reg + 1, (reg + 1))),
+    A ~ (@. Normal(reg .+ μ, (reg + 1))),
     As $ Sum(:A, :G),
-    Y ~ (@. truncated(Normal(A + As + reg + reg2, σ), A + As + reg + reg2 - (6*σ), A + As + reg + reg2 + (6*σ)))
+    Y ~ (@. truncated(Normal(A + As + reg + reg2 - 150, σ), A + As + reg + reg2 - 150 - (6*σ), A + As + reg + reg2 - 150 + (6*σ)))
 )
 
 confoundersymbs = vcat([Symbol("L$(i)s") for i in 1:16], [Symbol("L$(i)") for i in 1:16], [:F])
