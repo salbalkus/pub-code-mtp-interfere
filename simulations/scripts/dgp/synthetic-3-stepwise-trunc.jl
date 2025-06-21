@@ -21,15 +21,16 @@ scm = StructuralCausalModel(
         nonlin = (@. L4 - L4 * L1step - L4 * L2step + L1step + L2step + L3step),
         A ~ Normal.(0.5 * nonlin, 1.0),
         As $ Sum(:A, :G),
-        Y ~ (@. truncated(Normal(0.2 * ((A > 0) + (A > 0.5) + 2 * (A > 0.75) + 3 * (A > 1) + 4 * (A > 1.25) + 5 * (A > 2)) + 
-                        0.4 * ((As > 0) + (As > 1) + 2 * (As > 2) + 3 * (As > 3) + 4 * (As > 4) + 5 * (As > 5)) + 
-                        0.4 * nonlin, σ), 
-                        0.2 * ((A > 0) + (A > 0.5) + 2 * (A > 0.75) + 3 * (A > 1) + 4 * (A > 1.25) + 5 * (A > 2)) + 
-                        0.4 * ((As > 0) + (As > 1) + 2 * (As > 2) + 3 * (As > 3) + 4 * (As > 4) + 5 * (As > 5)) + 
-                        0.4 * nonlin - (6*σ), 
-                        0.2 * ((A > 0) + (A > 0.5) + 2 * (A > 0.75) + 3 * (A > 1) + 4 * (A > 1.25) + 5 * (A > 2)) + 
-                        0.4 * ((As > 0) + (As > 1) + 2 * (As > 2) + 3 * (As > 3) + 4 * (As > 4) + 5 * (As > 5)) + 
-                        0.4 * nonlin + (6*σ)))
+        Y ~ (@. truncated(Normal(
+                        0.5 * ((A > 0) + (A > 0.5) + 2 * (A > 0.75) + 3 * (A > 1) + 4 * (A > 1.25) + 5 * (A > 2)) + 
+                        0.5 * ((As > 0) + (As > 1) + 2 * (As > 2) + 3 * (As > 3) + 4 * (As > 4) + 5 * (As > 5)) + 
+                        0.5 * nonlin - 10, σ), 
+                        0.5 * ((A > 0) + (A > 0.5) + 2 * (A > 0.75) + 3 * (A > 1) + 4 * (A > 1.25) + 5 * (A > 2)) + 
+                        0.5 * ((As > 0) + (As > 1) + 2 * (As > 2) + 3 * (As > 3) + 4 * (As > 4) + 5 * (As > 5)) + 
+                        0.5 * nonlin - 10 - (6*σ), 
+                        0.5 * ((A > 0) + (A > 0.5) + 2 * (A > 0.75) + 3 * (A > 1) + 4 * (A > 1.25) + 5 * (A > 2)) + 
+                        0.5 * ((As > 0) + (As > 1) + 2 * (As > 2) + 3 * (As > 3) + 4 * (As > 4) + 5 * (As > 5)) + 
+                        0.5 * nonlin - 10 + (6*σ)))
     ),  
     treatment = [:A, :As],
     response = :Y,
@@ -39,5 +40,5 @@ scm = StructuralCausalModel(
         Y = [:A, :As, :L1, :L2, :L3, :L4, :F]
     )
 )
-intervention = AdditiveShift(0.2)
+intervention = AdditiveShift(1.0)
 

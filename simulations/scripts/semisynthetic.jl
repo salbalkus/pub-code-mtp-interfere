@@ -30,7 +30,7 @@ netname = "α=$(α);super"
 include(scriptsdir("auxiliary", "2-run-simulation.jl"))
 
 tbl_super = opchars(result, config; varsymb = :σ2net, methodnames = ["tmle", "tmle_iid", "ols"])
-tbl2_super = DataFrames.select(tbl_super, [:method, :bias, :pct_bias, :variance, :coverage])
+tbl2_super = DataFrames.select(tbl_super, [:method, :bias, :pct_bias, :variance, :coverage, :ci_width])
 
 tbl2_super[!, "method"] = tbl2_super[!, "method"] .* "_super"
 tbl_final = vcat(tbl2, tbl2_super[1:2, :])
@@ -56,7 +56,7 @@ netname = "α=$(α);super"
 include(scriptsdir("auxiliary", "2-run-simulation.jl"))
 
 tbl_super = opchars(result, config; varsymb = :σ2net, methodnames = ["tmle", "tmle_iid", "ols"])
-tbl2_super = DataFrames.select(tbl_super, [:method, :bias, :pct_bias, :variance, :coverage])
+tbl2_super = DataFrames.select(tbl_super, [:method, :bias, :pct_bias, :variance, :coverage, :ci_width])
 
 tbl2_super[!, "method"] = tbl2_super[!, "method"] .* "_super"
 tbl_final = vcat(tbl2, tbl2_super[1:2, :])
@@ -81,7 +81,7 @@ netname = "α=$(α);super"
 include(scriptsdir("auxiliary", "2-run-simulation.jl"))
 
 tbl_super = opchars(result, config; varsymb = :σ2net, methodnames = ["tmle", "tmle_iid", "ols"])
-tbl2_super = DataFrames.select(tbl_super, [:method, :bias, :pct_bias, :variance, :coverage])
+tbl2_super = DataFrames.select(tbl_super, [:method, :bias, :pct_bias, :variance, :coverage, :ci_width])
 
 tbl2_super[!, "method"] = tbl2_super[!, "method"] .* "_super"
 tbl_final = vcat(tbl2, tbl2_super[1:2, :])
