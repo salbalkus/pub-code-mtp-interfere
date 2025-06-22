@@ -11,12 +11,12 @@ ntruth = n
 samples = [n]
 add_shift = intervention.δb(nothing)
 
-### Νο change in mean of treatment ###
-α = 0.0
+### Νο shift in mean of treatment ###
+α = -2.0
 netname = "α=$(α)"
 scm = semisynthetic_scm(α, 1.0)
 config = @strdict name ntruth scm intervention
-config["ψ"] = mean(((reg .+ α) .+ add_shift) .* (1.0 .+ vec(sum(neighbors, dims=1))) .+ reg .+ reg2 .- 150)
+config["ψ"] = mean(((reg .+ α) .+ add_shift) .* (1.0 .+ vec(sum(neighbors, dims=1))) .+ reg .+ reg2 .- 50)
 config["eff_bound"] = NaN
 
 
@@ -34,7 +34,7 @@ tbl2_super = DataFrames.select(tbl_super, [:method, :bias, :pct_bias, :variance,
 
 tbl2_super[!, "method"] = tbl2_super[!, "method"] .* "_super"
 tbl_final = vcat(tbl2, tbl2_super[1:2, :])
-output_path = joinpath(projectdir(), "..", "data", "semisynthetic-summary.csv")
+output_path = joinpath(projectdir(), "..", "data", "semisynthetic-summary-α=$(α).csv")
 CSV.write(output_path, tbl_final)
 
 ### Decrease mean of treatment ###
@@ -60,11 +60,11 @@ tbl2_super = DataFrames.select(tbl_super, [:method, :bias, :pct_bias, :variance,
 
 tbl2_super[!, "method"] = tbl2_super[!, "method"] .* "_super"
 tbl_final = vcat(tbl2, tbl2_super[1:2, :])
-output_path = joinpath(projectdir(), "..", "data", "semisynthetic-summary.csv")
+output_path = joinpath(projectdir(), "..", "data", "semisynthetic-summary-α=$(α).csv")
 CSV.write(output_path, tbl_final)
 
 ### Increase mean of treatment ###
-α = 5.0
+α = 3.0
 netname = "α=$(α)"
 scm = semisynthetic_scm(α, 1.0)
 config = @strdict name ntruth scm intervention
@@ -85,7 +85,7 @@ tbl2_super = DataFrames.select(tbl_super, [:method, :bias, :pct_bias, :variance,
 
 tbl2_super[!, "method"] = tbl2_super[!, "method"] .* "_super"
 tbl_final = vcat(tbl2, tbl2_super[1:2, :])
-output_path = joinpath(projectdir(), "..", "data", "semisynthetic-summary.csv")
+output_path = joinpath(projectdir(), "..", "data", "semisynthetic-summary-α=$(α).csv")
 CSV.write(output_path, tbl_final)
 
 

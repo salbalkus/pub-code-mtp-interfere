@@ -17,7 +17,7 @@ net.h_zcta = map(x -> zctas_dict[x], net.h_zcta)
 
 # Construct graph and extract weight matrix
 g = SimpleWeightedDiGraph(net.w_zcta, net.h_zcta, net.weight)
-neighbors = (g.weights .> 0.01) # trims nodes with very few commuters, since we sum directly
+neighbors = (g.weights .> 0.025) # trims nodes with very few commuters, since we sum directly
 n = nv(g)
 L = Tables.matrix(df)[:, 1:16]  # Select the first 16 columns as confounders for the model
 
@@ -46,7 +46,7 @@ function semisynthetic_scm(α, σ)
         F $ Friends(:G),
         A ~ (@. Normal(reg .+ α, (reg + 1))),
         As $ Sum(:A, :G),
-        Y ~ (@. truncated(Normal(A + As + reg + reg2 - 150, σ), A + As + reg + reg2 - 150 - (6*σ), A + As + reg + reg2 - 150 + (6*σ)))
+        Y ~ (@. truncated(Normal(A + As + reg + reg2 - 50, σ), A + As + reg + reg2 - 50 - (6*σ), A + As + reg + reg2 - 50 + (6*σ)))
     )
 
     confoundersymbs = vcat([Symbol("L$(i)s") for i in 1:16], [Symbol("L$(i)") for i in 1:16], [:F])
@@ -60,4 +60,4 @@ function semisynthetic_scm(α, σ)
     return scm
 end
 
-intervention = AdditiveShift(1.0)
+intervention = AdditiveShift(0.5)

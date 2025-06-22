@@ -1,11 +1,14 @@
 include(scriptsdir("dgp", "$(name)")) # load `dgp` and `intervention`
 config = maketruth(@strdict name seed ntruth scm intervention)
 
+LinearRegressor = @load LinearRegressor pkg=MLJLinearModels
+LogisticClassifier = @load LogisticClassifier pkg=MLJLinearModels
 XGBoostRegressor = @load XGBoostRegressor pkg=XGBoost
 XGBoostClassifier = @load XGBoostClassifier pkg=XGBoost
 
 
 mean_estimator = SuperLearner([
+    LinearRegressor(),
     XGBoostRegressor(objective = "reg:squarederror", booster="gblinear"),
     XGBoostRegressor(objective = "reg:squarederror", num_round = 1, 
                     colsample_bynode = 0.8, eta = 1, max_depth = 6, num_parallel_tree = 100, subsample = 0.8, tree_method = "hist"),
@@ -18,6 +21,7 @@ mean_estimator = SuperLearner([
 ], CV(nfolds = 4))
 
 sl = SuperLearner([
+    LogisticClassifier(),
     XGBoostClassifier(objective = "binary:logistic", booster="gblinear"),
     XGBoostClassifier(objective = "binary:logistic", num_round = 1, 
                       colsample_bynode = 0.8, eta = 1, max_depth = 6, num_parallel_tree = 100, subsample = 0.8, tree_method = "hist"),
