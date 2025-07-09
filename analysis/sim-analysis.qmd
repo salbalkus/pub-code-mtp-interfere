@@ -102,7 +102,7 @@ p1
 ## Semi-Synthetic
 
 ```{r}
-df = read_csv(here("data", "semisynthetic-summary.csv"))[c(1, 4, 3, 2), ]
+df = read_csv(here("data", "semisynthetic-summary-α=0.0.csv"))[c(1, 4, 3, 2), ]
 
 df$method = c("Network TMLE", "Network TMLE", "Classical TMLE", "Linear Regression")
 df$learner = c("Correct GLM", "Super Learner", "Correct GLM", "Correct GLM")

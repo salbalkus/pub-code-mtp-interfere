@@ -6,15 +6,15 @@ function opchars(r::DataFrame, config::Dict; varsymb = :σ2, methodnames = ["plu
         unstack([:i, :method, :samples], :estimate, :value)
         @rsubset(:method ∈ methodnames)
         @transform(:bias = (:ψ .- config["ψ"]))
-        @transform(:pct_bias = (:bias ./ config["ψ"]))
-        @transform(:scaled_bias = sqrt.(:samples) .* :bias)
+        @transform(:pct_bias = :bias ./ config["ψ"])
+        @transform(:scaled_bias = sqrt.(:samples) .* abs.(:bias) ./ log.(:samples))
         @transform(:ci = quantile.(TDist.(:samples .- 1), 0.975) .* sqrt.($(varsymb)))
         @transform(:upper = :ψ + :ci, :lower = :ψ - :ci)
         @transform(:coverage = map((u, l) -> !ismissing(l) ? config["ψ"] .≤ u .&& config["ψ"] .≥ l : missing, :upper, :lower))
         @rsubset(.!(isnan(:ψ)))
         groupby([:samples, :method])
         @combine(:bias = mean(:bias),
-                 :pct_bias = mean(:pct_bias),
+                 :pct_bias = abs.(mean(:pct_bias)),
                  :variance = mean($(varsymb)),
                  :scaled_bias = mean(:scaled_bias),
                  :ci_bias = t .* std(:bias), 
@@ -22,7 +22,7 @@ function opchars(r::DataFrame, config::Dict; varsymb = :σ2, methodnames = ["plu
                  :ci_scaled_bias = t .* std(:scaled_bias),
                  :coverage = mean(:coverage),
                  :ci_width = 2 * mean(:ci))
-        @transform(:scaled_mse = :samples .* (:bias .^ 2 .+ :variance))
+        @transform(:scaled_mse = :samples .* (:bias .^ 2 .+ :variance) ./ (log.(:samples).^2))
         @transform(:ci_scaled_mse = map(x -> ismissing(x) ? 0 : t * sqrt(x), :scaled_mse))
     end
 end
@@ -46,7 +46,7 @@ function makeplots(result::DataFrame, config::Dict; varsymb = :σ2, ci = [true, 
     p1 = @df r plot(:samples, :pct_bias, group = :method,
             yerror = errsymbs[1],
             xlabel = xlab, 
-            ylabel=L"\psi - \hat{\psi}_n",
+            ylabel=L"|\psi - \hat{\psi}_n| / \psi",
             markershape = markershape,
             title = "Bias",
             markerstrokecolor = markerstrokecolor
@@ -56,7 +56,7 @@ function makeplots(result::DataFrame, config::Dict; varsymb = :σ2, ci = [true, 
     p2 = @df r plot(:samples, :scaled_bias, group = :method,
         yerror = errsymbs[2],
         xlabel = xlab, 
-        ylabel=L"\sqrt{n} \times (\psi - \hat{\psi}_n)",
+        ylabel=L"r_n \times (\psi - \hat{\psi}_n)",
         markershape = markershape,
         title = "Scaled Bias",
         markerstrokecolor = markerstrokecolor
@@ -66,7 +66,7 @@ function makeplots(result::DataFrame, config::Dict; varsymb = :σ2, ci = [true, 
     p3 = @df r plot(:samples, :scaled_mse, group = :method,
         yerror = errsymbs[3],
         xlabel = xlab, 
-        ylabel=L"n \times ((\psi - \hat{\psi}_n)^2 + \hat{\sigma_n^2})",
+        ylabel=L"r_n^2 \times ((\psi - \hat{\psi}_n)^2 + \hat{\sigma_n^2})",
         markershape = markershape,
         title = "Scaled MSE",
         markerstrokecolor = markerstrokecolor,

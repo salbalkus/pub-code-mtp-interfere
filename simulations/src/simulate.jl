@@ -55,7 +55,7 @@ function simulate(config::Dict; tag = false, print_every = 50)
             # simulate and store the MTP fit
             else
                 i % print_every == 0 && println("Computing $(i) of $(c["nreps"]) in thread $(Threads.threadid())")
-                params = Dict("data" => ct["data"], "mtp" => config["mtp"], "intervention" => config["intervention"], "samples" => c["samples"], "i" => i,
+                params = Dict("data" => ct["data"], "mtp" => config["mtp"], "mtp_iid" => config["mtp_iid"], "intervention" => config["intervention"], "samples" => c["samples"], "i" => i,
                                 "bootstrap" => config["bootstrap"], "bootstrap_samples" => config["bootstrap_samples"])
                 try 
                     net_mtp = simulate_mtp_fit(params)
@@ -111,7 +111,12 @@ function simulate_mtp_fit(config, iid = false)
     new_treatment = intersect(config["data"].treatment, no_summaries)
     
     dat = iid ? CausalTables.replace(config["data"]; treatment = new_treatment, summaries = (;), arrays = (;), causes = new_causes) : config["data"]
-    mtpmach = machine(config["mtp"], dat, config["intervention"]) |> fit!
+   
+    if iid 
+        mtpmach = machine(config["mtp_iid"], dat, config["intervention"]) |> fit!
+    else
+        mtpmach = machine(config["mtp"], dat, config["intervention"]) |> fit!
+    end
     
     # Compute causal estimates
     result = ModifiedTreatment.estimate(mtpmach, config["intervention"])
@@ -126,10 +131,16 @@ function simulate_mtp_fit(config, iid = false)
     return df
 end
 
-function simulate_ols_fit(config)
-
+function simulate_ols_fit(config, iid = true)
     # Only consider the effect of the first treatment
-    dat = CausalTables.responseparents(config["data"])
+    summary_vars = keys(config["data"].summaries)
+    no_summaries = Tuple(setdiff(keys(config["data"].causes), keys(config["data"].summaries)))
+    new_causes = NamedTupleTools.select(config["data"].causes, no_summaries)
+    new_causes = NamedTuple{no_summaries}(map(x -> setdiff(x, summary_vars), new_causes))
+    new_treatment = intersect(config["data"].treatment, no_summaries)
+    
+    dat = iid ? CausalTables.replace(config["data"]; treatment = new_treatment, summaries = (;), arrays = (;), causes = new_causes) : config["data"]
+    dat = CausalTables.responseparents(dat)
     iid_treatment = intersect(dat.treatment, setdiff(keys(dat.causes), keys(dat.summaries)))[1]
 
     # Find the treatment index, and add 1 to account for intercept in OLS model

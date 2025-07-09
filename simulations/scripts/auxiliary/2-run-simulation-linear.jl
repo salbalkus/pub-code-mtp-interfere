@@ -3,15 +3,25 @@ config = maketruth(@strdict name seed ntruth scm intervention)
 
 LinearRegressor = @load LinearRegressor pkg=MLJLinearModels
 LogisticClassifier = @load LogisticClassifier pkg=MLJLinearModels
+DeterministicConstantRegressor = @load DeterministicConstantRegressor pkg=MLJModels
 mean_estimator = LinearRegressor()
-density_ratio_estimator = DensityRatioClassifier(LogisticClassifier())
+location_model = LinearRegressor()
+scale_model = DeterministicConstantRegressor()
+density_model = KDE(0.001, Normal)
+r = range(density_model, :bandwidth, lower=0.001, upper=0.5)
+density_ratio_estimator = SumRatioHSE(location_model, scale_model, density_model, r, CV(nfolds=5))
+lse_model_iid = LocationScaleDensity(location_model, scale_model, density_model, r, CV(nfolds=5))
+density_ratio_estimator_iid = DensityRatioPlugIn(lse_model_iid)
 cv_splitter = nothing
 mtp = MTP(mean_estimator, density_ratio_estimator, cv_splitter)
+mtp_iid = MTP(mean_estimator, density_ratio_estimator_iid, cv_splitter)
+
 
 # Define simulation parameters
 config["samples"] = samples
 config["nreps"] = nreps
 config["mtp"] = mtp
+config["mtp_iid"] = mtp_iid
 config["bootstrap"] = bootstrap
 config["bootstrap_samples"] = bootstrap_samples
 config["netname"] = netname
