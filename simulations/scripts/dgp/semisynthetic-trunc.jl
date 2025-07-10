@@ -37,6 +37,7 @@ function semisynthetic_scm(α, σ)
 
     many_summaries = DataGeneratingProcess(
         vcat([:G], [Symbol("L", i, "s") for i in 1:size(L, 2)]),
+        vcat([:code], fill(:transformation, 16)),
         vcat([O -> neighbors], [O -> Sum(Symbol("L", i), :G) for i in 1:size(L, 2)])
     )
 
@@ -52,9 +53,9 @@ function semisynthetic_scm(α, σ)
     confoundersymbs = vcat([Symbol("L$(i)s") for i in 1:16], [Symbol("L$(i)") for i in 1:16], [:F])
     scm = StructuralCausalModel(
         CausalTables.merge(many_variables, final_output),
-        treatment=[:A, :As],
+        treatment=[:A],
         response= :Y,
-        causes = (A = confoundersymbs, As = confoundersymbs, Y = vcat([:A, :As], confoundersymbs)),
+        causes = (A = confoundersymbs, As = confoundersymbs, Y = vcat([:A], confoundersymbs)),
     )
 
     return scm
