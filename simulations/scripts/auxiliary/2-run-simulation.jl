@@ -9,7 +9,7 @@ FillImputer = @load FillImputer pkg=MLJModels
 ElasticNetRegressor = @load ElasticNetRegressor pkg=MLJLinearModels
 DeterministicConstantRegressor = @load DeterministicConstantRegressor pkg=MLJModels
 
-mean_estimator = FillImputer(continuous_fill = x -> NaN) |>
+mean_estimator = CrossFitModel(FillImputer(continuous_fill = x -> NaN) |>
     SuperLearner([
     LinearRegressor(),
     XGBoostRegressor(objective = "reg:squarederror", num_round = 1, 
@@ -22,7 +22,7 @@ mean_estimator = FillImputer(continuous_fill = x -> NaN) |>
                     num_round = 300, eta = 0.01, max_depth = 3),
     XGBoostRegressor(objective = "reg:squarederror", tree_method = "exact",
                     num_round = 50, eta = 0.3, max_depth = 20, min_child_weight = 20),
-], CV(nfolds = 4))
+], CV(nfolds = 5)), CV(nfolds = 5))
 
 location_model = CrossFitModel(FeatureSelector(features=[:L1, :L2, :L3, :L4], ignore=false) |>
                     SuperLearner([
