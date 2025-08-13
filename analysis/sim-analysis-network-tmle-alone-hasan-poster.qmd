@@ -28,10 +28,10 @@ read_simulation_result <- function(x){
 }
 
 df = bind_rows(lapply(network_names, read_simulation_result))
-
+df = df %>% filter(network %in% c("ws-super-fast", "sf-super-fast"))
 ```
 ```{r}
-labels = c("`% Bias`", "`√n·|Bias|`", "`n·MSE`", "`Coverage`")
+labels = c("`% Bias`", "`√n·|Bias|`", "`n·MSE`", "`Coverage`", "`Variance`")
 
 
 truthdf = read_csv(here("data", paste0("synthetic-truth.csv"))) %>% 
@@ -54,13 +54,13 @@ truthdf$network = factor(truthdf$network,
 
 df$scaled_bias = abs(df$scaled_bias)
 df2 = df %>% 
-  mutate(scaled_bias = scaled_bias / log(samples), scaled_mse = scaled_mse / log(samples)^2, pct_bias = 100 * pct_bias) %>%
-  pivot_longer(all_of(c("pct_bias", "scaled_bias", "scaled_mse", "coverage"))) %>% 
+  mutate(scaled_bias = scaled_bias / log(samples) / sqrt(samples), scaled_mse = scaled_mse / log(samples)^2 / samples, pct_bias = 100 * pct_bias, variance = variance) %>%
+  pivot_longer(all_of(c("pct_bias", "scaled_bias", "scaled_mse", "coverage", "variance"))) %>% 
   select(samples, method, name, value, network) %>%
   filter(method %in% c("tmle"))
 
 df2$name = factor(df2$name, 
-                  c("pct_bias", "scaled_bias", "scaled_mse", "coverage"), 
+                  c("pct_bias", "scaled_bias", "scaled_mse", "coverage", "variance"), 
                   labels = labels)
 
 df2$network = factor(df2$network,
@@ -90,41 +90,19 @@ p1 = ggplot(df2 %>% filter(name == "`% Bias`")) +
   scale_color_manual(values = c("#002e5c", "#ffa600", "#00aaf5")) + 
   theme(strip.background = element_rect("#EEEEEE", "#d1d1d1"), 
         strip.text = element_text(colour = 'black')) +
-  scale_x_continuous(breaks = c(100, 900, 2500))
+  scale_x_continuous(breaks = c(100,400, 900, 1600, 2500))
 
-p2 = ggplot(df2 %>% filter(name == "`√n·|Bias|`")) + 
-  geom_hline(aes(yintercept = value), color = "gray", data = truthdf %>% filter(name == "`√n·|Bias|`")) + 
+p3 = ggplot(df2 %>% filter(name == "`Variance`")) + 
   geom_line(aes(x = samples, y = value, color = network), linewidth = 0.5) +
   geom_point(aes(x = samples, y = value, color = network)) + 
-  ylab("√n·|Bias|") + xlab("Sample Size") + labs(color = "") +
+  ylab("Variance") + xlab("Sample Size") + labs(color = "") +
   scale_color_manual(values = c("#002e5c", "#ffa600", "#00aaf5")) + 
   theme(strip.background = element_rect("#EEEEEE", "#d1d1d1"), 
         strip.text = element_text(colour = 'black')) +
-  scale_x_continuous(breaks = c(100, 900, 2500))
+  scale_x_continuous(breaks = c(100,400, 900, 1600, 2500))
 
-p3 = ggplot(df2 %>% filter(name == "`n·MSE`")) + 
-  geom_hline(aes(yintercept = value, color = network), data = truthdf %>% filter(name == "`n·MSE`")) + 
-  geom_line(aes(x = samples, y = value, color = network), linewidth = 0.5) +
-  geom_point(aes(x = samples, y = value, color = network)) + 
-  ylab("n·MSE") + xlab("Sample Size") + labs(color = "") +
-  scale_color_manual(values = c("#002e5c", "#ffa600", "#00aaf5")) + 
-  theme(strip.background = element_rect("#EEEEEE", "#d1d1d1"), 
-        strip.text = element_text(colour = 'black')) +
-  scale_x_continuous(breaks = c(100, 900, 2500))
-
-p4 = ggplot(df2 %>% filter(name == "`Coverage`")) + 
-  geom_hline(aes(yintercept = value), color = "gray", data = truthdf %>% filter(name == "`Coverage`")) + 
-  geom_line(aes(x = samples, y = value, color = network), linewidth = 0.5) +
-  geom_point(aes(x = samples, y = value, color = network)) + 
-  ylab("Coverage") + xlab("Sample Size") + labs(color = "") +
-  ylim(0.5,1) + 
-  scale_color_manual(values = c("#002e5c", "#ffa600", "#00aaf5")) + 
-  theme(strip.background = element_rect("#EEEEEE", "#d1d1d1"), 
-        strip.text = element_text(colour = 'black')) +
-  scale_x_continuous(breaks = c(100, 900, 2500))
-
-p = ggarrange(p1, p2, p3, p4, common.legend = TRUE, legend="bottom")
-ggsave("sim-result.png", p, path = here("results"), width = 6, height = 6, dpi = 400)
+p = ggarrange(p1, p3, ncol = 1, common.legend = TRUE, legend="bottom")
+ggsave("hasan-sim-result.png", p, path = here("results"), width = 3, height = 6, dpi = 400)
 
 p
 

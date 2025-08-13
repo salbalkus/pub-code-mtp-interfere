@@ -5,7 +5,7 @@ function opchars(r::DataFrame, config::Dict; varsymb = :σ2, methodnames = ["plu
         @rsubset(.!(isnan(:value)))
         unstack([:i, :method, :samples], :estimate, :value)
         @rsubset(:method ∈ methodnames)
-        @transform(:bias = (:ψ .- config["ψ"]))
+        @transform(:bias = :ψ .- config["ψ"])
         @transform(:pct_bias = :bias ./ config["ψ"])
         @transform(:scaled_bias = sqrt.(:samples) .* abs.(:bias) ./ log.(:samples))
         @transform(:ci = quantile.(TDist.(:samples .- 1), 0.975) .* sqrt.($(varsymb)))
@@ -14,7 +14,7 @@ function opchars(r::DataFrame, config::Dict; varsymb = :σ2, methodnames = ["plu
         @rsubset(.!(isnan(:ψ)))
         groupby([:samples, :method])
         @combine(:bias = mean(:bias),
-                 :pct_bias = abs.(mean(:pct_bias)),
+                 :pct_bias = mean(:pct_bias),
                  :variance = mean($(varsymb)),
                  :scaled_bias = mean(:scaled_bias),
                  :ci_bias = t .* std(:bias), 

@@ -11,13 +11,12 @@ DeterministicConstantRegressor = @load DeterministicConstantRegressor pkg=MLJMod
 
 mean_estimator = CrossFitModel(FillImputer(continuous_fill = x -> NaN) |>
     SuperLearner([
-    LinearRegressor(),
     XGBoostRegressor(objective = "reg:squarederror", num_round = 1, 
                     colsample_bynode = 0.8, eta = 1, max_depth = 6, num_parallel_tree = 100, subsample = 0.8, tree_method = "hist"),
     XGBoostRegressor(objective = "reg:squarederror", 
                     eta = 0.3, max_depth = 6),
     XGBoostRegressor(objective = "reg:squarederror", 
-                    eta = 0.1, max_depth = 6),
+                    eta = 0.1, max_depth = 8, tree_method = "exact"),
     XGBoostRegressor(objective = "reg:squarederror", 
                     num_round = 300, eta = 0.01, max_depth = 3),
     XGBoostRegressor(objective = "reg:squarederror", tree_method = "exact",
@@ -26,7 +25,6 @@ mean_estimator = CrossFitModel(FillImputer(continuous_fill = x -> NaN) |>
 
 location_model = CrossFitModel(FeatureSelector(features=[:L1, :L2, :L3, :L4], ignore=false) |>
                     SuperLearner([
-                        LinearRegressor(),
                         XGBoostRegressor(objective = "reg:squarederror", num_round = 1, 
                             colsample_bynode = 0.8, eta = 1, max_depth = 6, num_parallel_tree = 100, subsample = 0.8, tree_method = "hist"),
                         XGBoostRegressor(objective = "reg:squarederror", tree_method = "exact",

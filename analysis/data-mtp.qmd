@@ -27,7 +27,7 @@ using Statistics
 
 # Load the dataframe
 df_raw = CSV.read(joinpath("data","NO2_ZEV_ZCTAs.csv"), DataFrame)
-df = select(sort(df_raw, :ZCTA), Not([:ZCTA, :n2_2019, :p__2013]))
+df = DataFrames.select(sort(df_raw, :ZCTA), Not([:ZCTA, :n2_2019, :p__2013]))
 df[!, "pop"] = float.(df_raw[!, "pop"]);
 
 ```
@@ -64,9 +64,7 @@ neighbors = .!(iszero.(w[1]))
 ct_nosum = CausalTable(df; treatment = :ZEV_2019_pct, response = :no2)
 
 # Construct CausalTable with network summaries
-confounders = union(setdiff(Tables.columnnames(df), [:ZEV_2019_pct, :no2]), [:nfriends])
 ct = CausalTable(df; treatment = :ZEV_2019_pct, response = :no2, 
-                confounders = confounders,
                 arrays = (F = neighbors, w_2019 = w[1], w_2013 = w[2],), 
                 summaries = (ZEV_2019_sum = Sum(:ZEV_2019_pct, :w_2019),
                                 ZEV_2013_sum = Sum(:ZEV_2013_pct, :w_2013),
@@ -101,19 +99,20 @@ y = Tables.getcolumn(ct_nosum, ct_nosum.response[1])
 # function to compute HC-consistent errors
 hce(glm_fit, X) = inv((transpose(X) * X)) * (transpose(X) * LinearAlgebra.diagm(residuals(glm_fit).^2) * X) * inv((transpose(X) * X))
 
+colnum = findfirst(Tables.columnnames(Xtbl) .== :ZEV_2019_pct)
 glm_a = lm(X, y)
-est_a = coef(glm_a)[1]
-moe_a = 1.96 .* sqrt(hce(glm_a, X)[1,1] + var(y)/length(y))
+est_a = coef(glm_a)[colnum]
+moe_a = 1.96 .* sqrt(hce(glm_a, X)[colnum,colnum] + var(y)/length(y))
 
 
 glm_effect_a = (est = est_a, lower = est_a - moe_a, upper = est_a + moe_a)
 #glm_effect_a = (est = est_a, lower = confint(glm_a)[1, 1], upper = confint(glm_a)[1, 2])
 
-X[:,1] = log.(X[:,1])
+X[:,colnum] = log.(X[:,colnum])
 
 glm_m = lm(X, y)
-est_m = coef(glm_m)[1] * log(1.2)
-moe_m = 1.96 .* sqrt(hce(glm_m, X)[1,1] + var(y)/length(y))
+est_m = coef(glm_m)[colnum] * log(1.2)
+moe_m = 1.96 .* sqrt(hce(glm_m, X)[colnum,colnum] + var(y)/length(y))
 
 glm_effect_m = (est = est_m, lower = est_m - moe_m, upper = est_m + moe_m)
 #glm_effect_m = (est = est_m, lower = confint(glm_m)[1, 1] * log(1.2), upper = confint(glm_m)[1, 2] * log(1.2))
@@ -143,8 +142,13 @@ end
 First, define the super learners.
 
 ```{julia}
+LinearRegressor = @load LinearRegressor pkg=MLJLinearModels
+LogisticClassifier = @load LogisticClassifier pkg=MLJLinearModels
 XGBoostRegressor = @load XGBoostRegressor pkg=XGBoost
 XGBoostClassifier = @load XGBoostClassifier pkg=XGBoost
+FillImputer = @load FillImputer pkg=MLJModels
+DeterministicConstantRegressor = @load DeterministicConstantRegressor pkg=MLJModels
+LGBMRegressor = @load LGBMRegressor pkg=LightGBM
 
 mean_estimator = SuperLearner([
     XGBoostRegressor(objective = "reg:squarederror", booster="gblinear"),
@@ -158,6 +162,7 @@ mean_estimator = SuperLearner([
                     num_round = 500, eta = 0.01, max_depth = 3),
 ], CV(nfolds = 5))
 
+# We need to stick with this one because the semiparametric fares poorly due to skewed data
 sl = SuperLearner([
     XGBoostClassifier(objective = "binary:logistic", booster="gblinear"),
     XGBoostClassifier(objective = "binary:logistic", num_round = 1, 
@@ -171,9 +176,11 @@ sl = SuperLearner([
 ], CV(nfolds = 5))
 
 density_ratio_estimator = DensityRatioClassifier(sl)
+density_ratio_estimator_iid = DensityRatioClassifier(sl)
+
 
 cv_splitter = CV(nfolds = 5)
-mtp = MTP(mean_estimator, density_ratio_estimator, cv_splitter)
+mtp = MTP(mean_estimator, density_ratio_estimator_iid, cv_splitter)
 ```
 
 Then, we run the MTP with no summarized features (assuming SUTVA).
@@ -192,7 +199,8 @@ mtp_effect_a = get_effects_tuple(mtp_result_a, ψ0, n; iid = true)
 Next, we run the MTP on the summarized data.
 
 ```{julia}
-mach_net_sum = machine(mtp, ct, shift) |> fit!
+mtps = MTP(mean_estimator, density_ratio_estimator, cv_splitter)
+mach_net_sum = machine(mtps, ct, shift) |> fit!
 ```
 
 ```{julia}
