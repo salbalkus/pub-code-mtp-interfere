@@ -22,7 +22,7 @@ function opchars(r::DataFrame, config::Dict; varsymb = :σ2, methodnames = ["plu
                  :ci_scaled_bias = t .* std(:scaled_bias),
                  :coverage = mean(:coverage),
                  :ci_width = 2 * mean(:ci))
-        @transform(:scaled_mse = :samples .* (:bias .^ 2 .+ :variance) ./ (log.(:samples).^2))
+        @transform(:scaled_mse = :samples .* (:bias .^ 2 .+ :variance) ./ (log.(:samples)).^2)
         @transform(:ci_scaled_mse = map(x -> ismissing(x) ? 0 : t * sqrt(x), :scaled_mse))
     end
 end
