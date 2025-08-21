@@ -1,7 +1,11 @@
 ---
-title: "Analyzing Simulation Output"
+title: "Supplementary Synthetic Data Results for The Causal Effects of Modified Treatment Policies Under Network Interference"
 format: html
 ---
+
+This Quarto notebook produces a publication-ready plot for the synthetic data supplement section of Balkus, Delaney, and Hejazi (2025) "The Causal Effects of Modified Treatment Policies Under Network Interference". These plots compare the results of using estimators that ignore interference to our method, which uses the network-TMLE. See the top-level `simulations` folder for the actual code to produce results.
+
+First, we load the necessary packages.
 
 ```{r}
 library(here)
@@ -10,16 +14,16 @@ library(stargazer)
 
 ```
 
-## Synthetic
+## Load synthetic data simulation results
 
 ```{r}
-network_names = c("er-super5", "sf-super5", "ws-super5")
+network_names = c("er-super-fast", "sf-super-fast", "ws-super-fast")
 network_names_full = c(`er-super-fast` = "Erdős-Rényi", `sf-super-fast` = "Scale-Free", `ws-super-fast` = "Watts-Strogatz")
 
 here("data", paste0("summary-synthetic-3-stepwise.jl-", network_names[1], ".csv"))
 
 read_simulation_result <- function(x){
-  df = read_csv(here("data", paste0("summary-synthetic-3-stepwise.jl-", x, ".csv")))
+  df = read_csv(here("data", paste0("summary-synthetic-3-stepwise-trunc.jl-", x, ".csv")))
   df$network = x
   return(df)
 }
@@ -29,30 +33,17 @@ df
 
 ```
 ```{r}
-labels = c("`% Bias`", "`log(√n·|Bias|)`", "`log(n·MSE)`", "`Coverage`")
+labels = c("`% Bias`", "`√Cₙ·|Bias|`", "`Cₙ·MSE`", "`Coverage`")
 
+truthdf = data.frame(name=as.factor(c("`% Bias`", "`√Cₙ·|Bias|`", "`Cₙ·MSE`", "`Coverage`")), value=c(0,0,0,0.95))
 
-truthdf = read_csv(here("data", paste0("synthetic-truth.csv"))) %>% 
-  mutate(scaled_mse = 1) %>%
-  filter(structure == "synthetic-3-stepwise.jl") %>%
-  pivot_longer(all_of(c("bias", "scaled_bias", "scaled_mse", "coverage")))
-
-truthdf$name = factor(truthdf$name, 
-                  c("bias", "scaled_bias", "scaled_mse", "coverage"), 
-                  labels = labels)
-truthdf$network = factor(truthdf$network,
-                    network_names,
-                    labels = network_names_full)
+truthdf = cbind(rbind(truthdf, truthdf, truthdf), data.frame(network = as.factor(c(rep("Erdős-Rényi", 4), rep("Scale-Free", 4), rep("Watts-Strogatz", 4)))))
 
 ```
 
-
-
 ```{r}
 
-df$scaled_bias = abs(df$scaled_bias)
 df2 = df %>% 
-  mutate(scaled_bias = log(scaled_bias), scaled_mse = log(scaled_mse)) %>%
   pivot_longer(all_of(c("pct_bias", "scaled_bias", "scaled_mse", "coverage"))) %>% 
   select(samples, method, name, value, network) %>%
   filter(method %in% c("tmle", "tmle_iid", "ols"))
@@ -72,77 +63,14 @@ df2$method = factor(df2$method,
 
 ```
 
+## Create plots of synthetic data simulation results
+
 ```{r}
 
 theme_set(theme_light(base_size = 10))
-df2$value_jitter = df2$value
-vals_to_jitter = grepl("log(", df2$name, fixed = T)
-df2$value_jitter[vals_to_jitter] = jitter(df2$value[vals_to_jitter], factor = 1000)
 
 p1 = ggplot(df2) + 
-  geom_hline(aes(yintercept = value), color = "gray", data = truthdf) + 
-  geom_line(aes(x = samples, y = value_jitter, color = method), linewidth = 0.5) +
-  geom_point(aes(x = samples, y = value_jitter, color = method)) +
-  facet_grid(rows = vars(name), cols = vars(network), labeller=label_parsed, scales = "free_y") + 
-  ylab("") + xlab("Sample Size") + labs(color = "") +
-  scale_color_manual(values = c("#002e5c", "#ffa600", "#00aaf5")) + 
-  theme(strip.background = element_rect("#EEEEEE", "#d1d1d1"), 
-        strip.text = element_text(colour = 'black'), 
-        legend.position = "bottom",legend.title=element_blank(), 
-        legend.margin=margin(-10,0,0,0),
-        panel.spacing = unit(15, "pt")) +
-  scale_x_continuous(breaks = c(100, 900, 2500))
-
-ggsave("sim-result.png", p1, path = here("results"), width = 6, height = 6, dpi = 400)
-
-p1
-
-```
-
-## Semi-Synthetic
-
-```{r}
-df = read_csv(here("data", "semisynthetic-summary-α=0.0.csv"))[c(1, 4, 3, 2), ]
-
-df$method = c("Network TMLE", "Network TMLE", "Classical TMLE", "Linear Regression")
-df$learner = c("Correct GLM", "Super Learner", "Correct GLM", "Correct GLM")
-df$mse = df$bias^2 + df$variance
-df$pct_bias = df$pct_bias * 100
-df$coverage = df$coverage * 100
-
-df = df %>% select(method, learner, pct_bias, coverage, mse)
-colnames(df) = c("Method", "Learner", "Bias (%)", "Coverage (%)", "MSE")
-```
-
-```{r}
-stargazer(as.data.frame(df), summary=FALSE)
-```
-
-## One-step
-
-```{r}
-df$scaled_bias = abs(df$scaled_bias)
-df2 = df %>% 
-  pivot_longer(all_of(c("pct_bias", "scaled_bias", "scaled_mse", "coverage"))) %>% 
-  select(samples, method, name, value, network) %>%
-  filter(method %in% c("onestep", "onestep_iid", "ols"))
-
-df2$name = factor(df2$name, 
-                  c("pct_bias", "scaled_bias", "scaled_mse", "coverage"), 
-                  labels = labels)
-
-df2$network = factor(df2$network,
-                    network_names,
-                    labels = network_names_full)
-
-df2$method = factor(df2$method,
-                    c("onestep", "onestep_iid", "ols"),
-                    labels = c(tmle = "Network One-step", tmle_iid = "One-step (No Network)", ols = "Linear Regression (No Network)"))
-```
-
-```{r}
-p3 = ggplot(df2) + 
-  geom_hline(aes(yintercept = value), color = "gray", data = truthdf) + 
+  geom_hline(aes(yintercept = value), color = "gray", data=truthdf) + 
   geom_line(aes(x = samples, y = value, color = method), linewidth = 0.5) +
   geom_point(aes(x = samples, y = value, color = method)) +
   facet_grid(rows = vars(name), cols = vars(network), labeller=label_parsed, scales = "free_y") + 
@@ -153,10 +81,10 @@ p3 = ggplot(df2) +
         legend.position = "bottom",legend.title=element_blank(), 
         legend.margin=margin(-10,0,0,0),
         panel.spacing = unit(15, "pt")) +
-  scale_x_continuous(breaks = c(400, 900, 1600, 2500))
+  scale_x_continuous(breaks = c(100, 900, 2500))
 
-ggsave("sim-result-onestep.png", p1, path = here("results"), width = 6, height = 6)
+ggsave("sim-result-comparison.png", p1, path = here("results"), width = 6, height = 6, dpi = 1000)
 
-p3
+p1
+
 ```
-

@@ -13,5 +13,3 @@ makeplots(result, config; ci = [false, false, false], methodnames = ["tmle", "tm
 
 savetable(result, config; varsymb = :σ2net)
 savetruth(config)
-
-

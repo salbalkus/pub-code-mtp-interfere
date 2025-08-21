@@ -1,7 +1,11 @@
 ---
-title: "Analyzing Simulation Output"
+title: "Simulation Plots for The Causal Effects of Modified Treatment Policies Under Network Interference"
 format: html
 ---
+
+This Quarto notebook produces publication-ready plots for the *simulation* section of Balkus, Delaney, and Hejazi (2025) "The Causal Effects of Modified Treatment Policies Under Network Interference". See the top-level `simulations` folder for the actual code to produce results.
+
+First, we load the data and necessary packages.
 
 ```{r}
 library(here)
@@ -13,7 +17,9 @@ library(ggpubr)
 
 ```
 
-## Synthetic
+## Load synthetic data results
+
+This code loads the results of the synthetic data simulation, cleans and processes them into a format usable by `ggplot`, and saves the plots. 
 
 ```{r}
 network_names = c("er-super-fast", "sf-super-fast", "ws-super-fast")
@@ -31,21 +37,14 @@ df = bind_rows(lapply(network_names, read_simulation_result))
 
 ```
 ```{r}
-labels = c("`% Bias`", "`√n·|Bias|`", "`n·MSE`", "`Coverage`")
+labels = c("`% Bias`", "`√Cₙ·|Bias|`", "`Cₙ·MSE`", "`Coverage`")
 
-
-truthdf = read_csv(here("data", paste0("synthetic-truth.csv"))) %>% 
-  #mutate(scaled_mse = 0) %>%
-  filter(structure == "synthetic-3-stepwise-trunc.jl") %>%
-  pivot_longer(all_of(c("bias", "scaled_bias", "scaled_mse", "coverage")))
-
-truthdf$name = factor(truthdf$name, 
-                  c("bias", "scaled_bias", "scaled_mse", "coverage"), 
-                  labels = labels)
-truthdf$network = factor(truthdf$network,
-                    network_names,
-                    labels = network_names_full)
-
+truevars = read_csv(here("data", paste0("graph_variances.csv"))) %>%
+  pivot_longer(c("er", "ws", "sf"))
+truevars$name = factor(truevars$name, 
+                  c("er", "sf", "ws"),
+                  labels = c(er = "Erdős-Rényi", sf = "Scale-Free", ws = "Watts-Strogatz"))
+truevars$value = truevars$value / (log(truevars$samples)^2)
 ```
 
 
@@ -54,7 +53,7 @@ truthdf$network = factor(truthdf$network,
 
 df$scaled_bias = abs(df$scaled_bias)
 df2 = df %>% 
-  mutate(scaled_bias = scaled_bias / log(samples), scaled_mse = scaled_mse / log(samples)^2, pct_bias = 100 * pct_bias) %>%
+  mutate(scaled_bias = scaled_bias, scaled_mse = scaled_mse, pct_bias = 100 * pct_bias) %>%
   pivot_longer(all_of(c("pct_bias", "scaled_bias", "scaled_mse", "coverage"))) %>% 
   select(samples, method, name, value, network) %>%
   filter(method %in% c("tmle"))
@@ -74,95 +73,70 @@ df2$method = factor(df2$method,
 
 ```
 
-## Alternate approach
+## Create synthetic data simulation plots
 ```{r}
 
 theme_set(theme_light(base_size = 10))
 #df2$value_jitter = df2$value
 #vals_to_jitter = grepl("log(", df2$name, fixed = T)
 #df2$value_jitter[vals_to_jitter] = jitter(df2$value[vals_to_jitter], factor = 1000)
+sample_breaks = c(100, 400, 900, 1600, 2500)
 
+dotsize = 2
+linewidth = 0.6
 p1 = ggplot(df2 %>% filter(name == "`% Bias`")) + 
-  geom_hline(aes(yintercept = value), color = "gray", data = truthdf %>% filter(name == "`% Bias`")) + 
-  geom_line(aes(x = samples, y = value, color = network), linewidth = 0.5) +
-  geom_point(aes(x = samples, y = value, color = network)) + 
+  geom_hline(aes(yintercept = 0), color = "gray", linewidth = linewidth) + 
+  geom_line(aes(x = samples, y = value, color = network, linetype = "Estimate"), linewidth = linewidth, show.legend=TRUE) +
+  geom_point(aes(x = samples, y = value, color = network), size = dotsize) + 
   ylab("% Bias") + xlab("Sample Size") + labs(color = "") +
   scale_color_manual(values = c("#002e5c", "#ffa600", "#00aaf5")) + 
   theme(strip.background = element_rect("#EEEEEE", "#d1d1d1"), 
-        strip.text = element_text(colour = 'black')) +
-  scale_x_continuous(breaks = c(100, 900, 2500))
+        strip.text = element_text(colour = 'black'), legend.key.size = unit(0.8, "cm")) +
+  scale_x_continuous(breaks = sample_breaks) +
+  scale_linetype_manual(name = "", values = c("Efficiency Bound" = "dashed", "Estimate" = "solid"), limits = c("Estimate", "Efficiency Bound"))
 
-p2 = ggplot(df2 %>% filter(name == "`√n·|Bias|`")) + 
-  geom_hline(aes(yintercept = value), color = "gray", data = truthdf %>% filter(name == "`√n·|Bias|`")) + 
-  geom_line(aes(x = samples, y = value, color = network), linewidth = 0.5) +
-  geom_point(aes(x = samples, y = value, color = network)) + 
-  ylab("√n·|Bias|") + xlab("Sample Size") + labs(color = "") +
+p2 = ggplot(df2 %>% filter(name == "`√Cₙ·|Bias|`")) + 
+  geom_line(aes(x = samples, y = value, color = network, linetype = "Estimate"), linewidth = linewidth, show.legend = TRUE) +
+  geom_point(aes(x = samples, y = value, color = network), size=dotsize) + 
+  ylab("√Cₙ·|Bias|") + xlab("Sample Size") + labs(color = "") +
   scale_color_manual(values = c("#002e5c", "#ffa600", "#00aaf5")) + 
   theme(strip.background = element_rect("#EEEEEE", "#d1d1d1"), 
         strip.text = element_text(colour = 'black')) +
-  scale_x_continuous(breaks = c(100, 900, 2500))
+  scale_x_continuous(breaks = sample_breaks) +
+  scale_linetype_manual(name = "", values = c("Efficiency Bound" = "dashed", "Estimate" = "solid"), limits = c("Estimate", "Efficiency Bound"))
 
-p3 = ggplot(df2 %>% filter(name == "`n·MSE`")) + 
-  geom_hline(aes(yintercept = value, color = network), data = truthdf %>% filter(name == "`n·MSE`")) + 
-  geom_line(aes(x = samples, y = value, color = network), linewidth = 0.5) +
-  geom_point(aes(x = samples, y = value, color = network)) + 
-  ylab("n·MSE") + xlab("Sample Size") + labs(color = "") +
+p3 = ggplot(df2 %>% filter(name == "`Cₙ·MSE`")) + 
+  geom_line(aes(x = samples, y = value, color = name, linetype = "Efficiency Bound"), data = truevars, linewidth = linewidth, show.legend = TRUE) + 
+  geom_line(aes(x = samples, y = value, color = network, linetype = "Estimate"), linewidth = linewidth, show.legend = TRUE) +
+  geom_point(aes(x = samples, y = value, color = network), size=dotsize) + 
+  ylab("Cₙ·MSE") + xlab("Sample Size") + labs(color = "") +
   scale_color_manual(values = c("#002e5c", "#ffa600", "#00aaf5")) + 
   theme(strip.background = element_rect("#EEEEEE", "#d1d1d1"), 
         strip.text = element_text(colour = 'black')) +
-  scale_x_continuous(breaks = c(100, 900, 2500))
+  scale_x_continuous(breaks = sample_breaks) +
+  scale_linetype_manual(name = "", values = c("Efficiency Bound" = "dashed", "Estimate" = "solid"), limits = c("Estimate", "Efficiency Bound"))
 
 p4 = ggplot(df2 %>% filter(name == "`Coverage`")) + 
-  geom_hline(aes(yintercept = value), color = "gray", data = truthdf %>% filter(name == "`Coverage`")) + 
-  geom_line(aes(x = samples, y = value, color = network), linewidth = 0.5) +
-  geom_point(aes(x = samples, y = value, color = network)) + 
+  geom_hline(aes(yintercept = 0.95), linewidth = linewidth, color = "gray") + 
+  geom_line(aes(x = samples, y = value, color = network, linetype = "Estimate"), linewidth = linewidth, show.legend = TRUE) +
+  geom_point(aes(x = samples, y = value, color = network), size = dotsize) + 
   ylab("Coverage") + xlab("Sample Size") + labs(color = "") +
   ylim(0.5,1) + 
   scale_color_manual(values = c("#002e5c", "#ffa600", "#00aaf5")) + 
   theme(strip.background = element_rect("#EEEEEE", "#d1d1d1"), 
         strip.text = element_text(colour = 'black')) +
-  scale_x_continuous(breaks = c(100, 900, 2500))
+  scale_x_continuous(breaks = sample_breaks) +
+  scale_linetype_manual(name = "", values = c("Efficiency Bound" = "dashed", "Estimate" = "solid"), limits = c("Estimate", "Efficiency Bound"))
 
 p = ggarrange(p1, p2, p3, p4, common.legend = TRUE, legend="bottom")
-ggsave("sim-result.png", p, path = here("results"), width = 6, height = 6, dpi = 400)
+ggsave("sim-result.png", p, path = here("results"), width = 6, height = 4.5, dpi = 1000)
 
 p
 
 
 ```
 
-
-```{r}
-
-theme_set(theme_light(base_size = 10))
-#df2$value_jitter = df2$value
-#vals_to_jitter = grepl("log(", df2$name, fixed = T)
-#df2$value_jitter[vals_to_jitter] = jitter(df2$value[vals_to_jitter], factor = 1000)
-
-p1 = ggplot(df2) + 
-  geom_hline(aes(yintercept = value), color = "gray", data = truthdf) + 
-  geom_line(aes(x = samples, y = value, color = network), linewidth = 0.5) +
-  geom_point(aes(x = samples, y = value, color = network)) + 
-  facet_wrap(vars(name), labeller=label_parsed, scales = "free_y", switch="both") + 
-  ylab("") + xlab("Sample Size") + labs(color = "") +
-  scale_color_manual(values = c("#002e5c", "#ffa600", "#00aaf5")) + 
-  theme(strip.background = element_rect("#EEEEEE", "#d1d1d1"), 
-        strip.text = element_text(colour = 'black'), 
-        legend.position = "bottom",legend.title=element_blank(), 
-        legend.margin=margin(-10,0,0,0),
-        panel.spacing = unit(15, "pt")) +
-  scale_x_continuous(breaks = c(100, 900, 2500)) + 
-  ggh4x::facetted_pos_scales(y = list(
-  name == "`Coverage`" ~ scale_y_continuous(limits = c(0.0, 1.0))
-))
-
-ggsave("sim-result.png", p1, path = here("results"), width = 6, height = 6, dpi = 400)
-
-p1
-
-```
-
-## Semi-Synthetic
+## Create tables for semi-synthetic data results
 
 First we create the table for the main text.
 ```{r}
@@ -207,47 +181,5 @@ df$coverage = df$coverage * 100
 df = df %>% select(method, learner, pct_bias, variance, coverage, ci_width)
 colnames(df) = c("Method", "Learner", "Bias (%)", "Variance", "Coverage (%)", "CI Width")
 stargazer(as.data.frame(df), summary=FALSE)
-```
-
-## One-step
-
-```{r}
-df$scaled_bias = abs(df$scaled_bias)
-df2 = df %>% 
-  pivot_longer(all_of(c("pct_bias", "scaled_bias", "scaled_mse", "coverage"))) %>% 
-  select(samples, method, name, value, network) %>%
-  filter(method %in% c("onestep", "onestep_iid", "ols"))
-
-df2$name = factor(df2$name, 
-                  c("pct_bias", "scaled_bias", "scaled_mse", "coverage"), 
-                  labels = labels)
-
-df2$network = factor(df2$network,
-                    network_names,
-                    labels = network_names_full)
-
-df2$method = factor(df2$method,
-                    c("onestep", "onestep_iid", "ols"),
-                    labels = c(tmle = "Network One-step", tmle_iid = "One-step (No Network)", ols = "Linear Regression (No Network)"))
-```
-
-```{r}
-p3 = ggplot(df2) + 
-  geom_hline(aes(yintercept = value), color = "gray", data = truthdf) + 
-  geom_line(aes(x = samples, y = value, color = method), linewidth = 0.5) +
-  geom_point(aes(x = samples, y = value, color = method)) +
-  facet_grid(rows = vars(name), cols = vars(network), labeller=label_parsed, scales = "free_y") + 
-  ylab("") + xlab("Sample Size") + labs(color = "") +
-  scale_color_manual(values = c("#002e5c", "#ffa600", "#00aaf5")) + 
-  theme(strip.background = element_rect("#EEEEEE", "#d1d1d1"), 
-        strip.text = element_text(colour = 'black'), 
-        legend.position = "bottom",legend.title=element_blank(), 
-        legend.margin=margin(-10,0,0,0),
-        panel.spacing = unit(15, "pt")) +
-  scale_x_continuous(breaks = c(400, 900, 1600, 2500))
-
-ggsave("sim-result-onestep.png", p1, path = here("results"), width = 6, height = 6)
-
-p3
 ```
 

@@ -1,7 +1,11 @@
 ---
-title: "OLS"
+title: "Data Example Plots for The Causal Effects of Modified Treatment Policies Under Network Interference"
 format: html
 ---
+
+This Quarto notebook produces publication-ready plots for the *data example* section of Balkus, Delaney, and Hejazi (2025) "The Causal Effects of Modified Treatment Policies Under Network Interference". See `data-mtp.qmd` for the actual analysis of the data. Each sub-section header corresponds to a different plot.
+
+First, we load the data and necessary packages.
 
 ```{r}
 library(here)
@@ -21,9 +25,6 @@ df = df_raw %>% left_join(neighbors, by = c("ZCTA" = "h_zcta")) %>% select(-ZCTA
 ```
 
 ## Table 1: Summary Statistics
-
-Create a LaTeX version of the data frame:
-
 ```{r}
 tbl = stargazer(as.data.frame(df), summary.stat = c("mean", "median", "p25", "p75"), nobs = F,
                 covariate.labels=c("Change in NO2, 2013-2019 (ppb)",
@@ -122,25 +123,24 @@ p = ggplot(estimate_df) +
   geom_vline(xintercept = 0, color = "darkgray") +
   geom_errorbarh(aes(y = method, xmin = lower, xmax = upper, color = method), 
                  height = .4, linewidth = 0.8) + 
-  geom_point(aes(x = effects, y = method, color = method), size = 2.5) +
+  geom_point(aes(x = effects, y = method, color = method), linewidth = 2.5) +
   facet_wrap(vars(shifttype), ncol = 2, scales = "fixed") + 
 
   theme_minimal() + 
   theme(axis.text.x = element_text(margin = margin(t = 4, r = 10, b = 10, l = 10)),
         legend.position = "none", 
         plot.margin = margin(, 4, , , "cm"),
-        panel.margin = unit(2, "lines")
+        panel.spacing = unit(2, "lines"),
+        strip.text.x = element_text(size = 11)
 ) +
   ylab("") + xlab("Mean NO₂ reduction, 2013-2019 (ppb)") +
   scale_color_manual(values=group.colors)
 p
-ggsave(here("results", "data-MTP-comparison.svg"), p, width = 8, height = 4, dpi = 400)
+ggsave(here("results", "data-MTP-comparison.png"), p, width = 7.5, height = 2.5, dpi = 1000)
 
 ```
 
 ## Figure 3: MTP Grid
-
-Network variance
 
 ```{r}
 grid_df_a = read_csv(here("results", "mtp_grid_a.csv"))
@@ -184,13 +184,13 @@ grid_df$name  = factor(grid_df$name, levels = labels)
 
 p = ggplot(grid_df, aes(x = shift, y = est)) + 
   geom_ribbon(aes(ymin = lower, ymax = upper, fill = name), 
-                 width = 0, linewidth = 0.6, alpha = 0.3) + 
-  geom_line(aes(color = name), size = 0.6) +
+                 linewidth = 0.6, alpha = 0.3) + 
+  geom_line(aes(color = name), linewidth = 0.6) +
   theme_minimal() + 
   labs(x = "Increase in Proportion of ZEVs Across CA (Percentage Point)", 
        y = "Mean NO₂ reduction, \n2013-2019 (ppb)",
        color="Estimator") + 
-  theme(legend.position = "bottom", axis.text.x = element_text(margin = margin(t = 4, r = 10, b = 10, l = 10)), plot.margin = margin(, 2, , , "cm")) + 
+  theme(legend.position = "bottom", axis.text.x = element_text(margin = margin(t = 2, r = 8, b = 8, l = 8)), plot.margin = margin(, 1, , , "cm"), strip.text.x = element_text(size = 13)) + 
   facet_wrap(vars(shifttype), ncol = 2, scales = "free") + 
   scale_color_manual(name = "", labels = labels, values=group.colors) + 
   scale_fill_manual(name = "", labels = labels, values=group.colors)
@@ -198,5 +198,5 @@ p = ggplot(grid_df, aes(x = shift, y = est)) +
 
 p
 here("results", "data-MTP-grid.svg")
-ggsave(here("results", "data-MTP-grid2.svg"), width = 6, height = 3, dpi = 400)
+ggsave(here("results", "data-MTP-grid2.png"), width = 6, height = 3, dpi = 1000)
 ```

@@ -19,16 +19,15 @@ scm = StructuralCausalModel(
         L3step = (@. -2*(L3 > 5) - (L3 > 10) + 2*(L3 > 15)),
 
         nonlin = (@. (1 + L4) * L1step + L2step + L3step + 12),
-        A ~ Normal.(nonlin .- 4, σ),
+        A ~ Normal.(nonlin .- 5, σ),
         As $ Sum(:A, :G),
         Y ~ (@. truncated(Normal(
-                        nonlin + (1 + L4) * (0.2 * (-2*(A > -2) - (A > 1) + 3*(A > 3)) + (As > 0) + 2*(As > 6) + 3*(As > 12)) + 5, σ), 
-                        nonlin + (1 + L4) * (0.2 * (-2*(A > -2) - (A > 1) + 3*(A > 3)) + (As > 0) + 2*(As > 6) + 3*(As > 12)) + 5 - (6*σ), 
-                        nonlin + (1 + L4) * (0.2 * (-2*(A > -2) - (A > 1) + 3*(A > 3)) + (As > 0) + 2*(As > 6) + 3*(As > 12)) + 5 + (6*σ)))
+                        nonlin * (1 + 0.2 * (-2*(A > -2) - (A > 1) + 3*(A > 3)) + (As > 0) + 2*(As > 6) + 3*(As > 12)) + 5, 2*σ), 
+                        nonlin * (1 + 0.2 * (-2*(A > -2) - (A > 1) + 3*(A > 3)) + (As > 0) + 2*(As > 6) + 3*(As > 12)) + 5 - (6*2*σ), 
+                        nonlin * (1 + 0.2 * (-2*(A > -2) - (A > 1) + 3*(A > 3)) + (As > 0) + 2*(As > 6) + 3*(As > 12)) + 5 + (6*2*σ)))
     ),  
     treatment = [:A],
     response = :Y
 )
-intervention = AdditiveShift(σ/2)
-
+intervention = AdditiveShift(σ/4)
 

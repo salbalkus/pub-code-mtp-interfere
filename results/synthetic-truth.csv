@@ -1,4 +1,0 @@
-structure,network,bias,scaled_bias,scaled_mse,coverage
-synthetic-3-stepwise.jl,sf-super5,0,0,1.5498499815556368,0.95
-synthetic-3-stepwise.jl,er-super5,0,0,1.798502747468154,0.95
-synthetic-3-stepwise.jl,ws-super5,0,0,2.0053711725556287,0.95

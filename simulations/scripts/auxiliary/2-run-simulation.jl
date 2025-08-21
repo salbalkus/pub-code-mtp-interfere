@@ -14,14 +14,14 @@ mean_estimator = CrossFitModel(FillImputer(continuous_fill = x -> NaN) |>
     XGBoostRegressor(objective = "reg:squarederror", num_round = 1, 
                     colsample_bynode = 0.8, eta = 1, max_depth = 6, num_parallel_tree = 100, subsample = 0.8, tree_method = "hist"),
     XGBoostRegressor(objective = "reg:squarederror", 
-                    eta = 0.3, max_depth = 6),
+                    eta = 0.3, max_depth = 6, lambda = 0.1, alpha = 0.1),
     XGBoostRegressor(objective = "reg:squarederror", 
-                    eta = 0.1, max_depth = 8, tree_method = "exact"),
+                    eta = 0.1, max_depth = 8, tree_method = "exact", lambda = 0.1, alpha = 0.1),
     XGBoostRegressor(objective = "reg:squarederror", 
-                    num_round = 300, eta = 0.01, max_depth = 3),
+                    num_round = 300, eta = 0.01, max_depth = 3, lambda = 0.1, alpha = 0.1),
     XGBoostRegressor(objective = "reg:squarederror", tree_method = "exact",
-                    num_round = 50, eta = 0.3, max_depth = 20, min_child_weight = 20),
-], CV(nfolds = 5)), CV(nfolds = 5))
+                    num_round = 50, eta = 0.3, max_depth = 20, min_child_weight = 20, lambda = 0.1, alpha = 0.1),
+], CV(nfolds = 5)), CV(nfolds = 10))
 
 location_model = CrossFitModel(FeatureSelector(features=[:L1, :L2, :L3, :L4], ignore=false) |>
                     SuperLearner([
@@ -36,7 +36,7 @@ location_model = CrossFitModel(FeatureSelector(features=[:L1, :L2, :L3, :L4], ig
                         XGBoostRegressor(objective = "reg:squarederror", tree_method = "exact",
                             num_round = 40, eta = 0.3, max_depth = 3, min_child_weight = 10,
                             lambda = 0.001, alpha = 0.001)
-                    ], CV(nfolds = 5)), CV(nfolds = 5))
+                    ], CV(nfolds = 5)), CV(nfolds = 10))
 
 scale_model = DeterministicConstantRegressor()
 density_model = KDE(0.001, Normal)

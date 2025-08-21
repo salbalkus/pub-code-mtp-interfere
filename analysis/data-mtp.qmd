@@ -1,8 +1,10 @@
 ---
-title: "MTP"
+title: "Data Example for The Causal Effects of Modified Treatment Policies Under Network Interference"
 format: html
 engine: julia
 ---
+
+This Quarto notebook performs analysis for the *data example* section of Balkus, Delaney, and Hejazi (2025) "The Causal Effects of Modified Treatment Policies Under Network Interference". See `data-analysis.qmd` for code to produce plots from these results. 
 
 ### Load necessary packages
 ```{julia}
@@ -218,8 +220,7 @@ tbl
 
 ```
 
-
-Let's also compute an MTP grid and save the results to a .CSV file.
+We also compute an MTP grid and save the results to a .CSV file.
 
 ```{julia}
 est_grid_a = []
@@ -238,8 +239,7 @@ CSV.write(joinpath("results", "mtp_grid_a.csv"), est_grid_a)
 
 ```
 
-
-Let's try the same analysis, but with a multiplicative shift. We can reuse our previously-fitted models and evaluate them on another shift.
+Next, perform the same analysis, but with a multiplicative shift. We can reuse our previously-fitted models and evaluate them on another shift.
 
 ```{julia}
 
@@ -259,7 +259,7 @@ CSV.write(joinpath("results", "mtp_analysis_m.csv"), tbl)
 
 ```
 
-Finally, let's compute the same estimates, except across a grid of possible shifts for the multiplicative shifts as well.
+Finally, we compute the same estimates, except across a grid of possible shifts for the multiplicative shifts as well.
 ```{julia}
 
 est_grid_m = []
