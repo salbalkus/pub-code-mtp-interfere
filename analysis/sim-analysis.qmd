@@ -81,7 +81,7 @@ p1 = ggplot(df2) +
         legend.position = "bottom",legend.title=element_blank(), 
         legend.margin=margin(-10,0,0,0),
         panel.spacing = unit(15, "pt")) +
-  scale_x_continuous(breaks = c(100, 900, 2500))
+  scale_x_continuous(breaks = c(100, 400, 900, 1600))
 
 ggsave("sim-result-comparison.png", p1, path = here("results"), width = 6, height = 6, dpi = 1000)
 
