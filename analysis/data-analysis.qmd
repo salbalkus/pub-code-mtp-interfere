@@ -104,7 +104,7 @@ p
 ## Figure 2: Full Confounder Comparison
 
 ```{r}
-theme_set(theme_minimal(base_size = 14))
+theme_set(theme_minimal())
 
 labels = c("Induced MTP (Sum)", "MTP (No Interference)",  "GLM (No Interference)")
 estimate_df_a = read_csv(here("results", "mtp_analysis_a.csv"))
