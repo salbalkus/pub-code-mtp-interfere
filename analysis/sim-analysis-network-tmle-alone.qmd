@@ -129,7 +129,7 @@ p4 = ggplot(df2 %>% filter(name == "`Coverage`")) +
   scale_linetype_manual(name = "", values = c("Efficiency Bound" = "dashed", "Estimate" = "solid"), limits = c("Estimate", "Efficiency Bound"))
 
 p = ggarrange(p1, p2, p3, p4, common.legend = TRUE, legend="bottom")
-ggsave("sim-result.png", p, path = here("results"), width = 6, height = 4.5, dpi = 1000, bg = 'white')
+ggsave("sim-result.svg", p, path = here("results"), width = 6, height = 4.5, dpi = 1000, bg = 'white')
 
 p
 

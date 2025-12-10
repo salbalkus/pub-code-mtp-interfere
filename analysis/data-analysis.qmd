@@ -25,6 +25,7 @@ df = df_raw %>% left_join(neighbors, by = c("ZCTA" = "h_zcta")) %>% select(-ZCTA
 ```
 
 ## Table 1: Summary Statistics
+
 ```{r}
 tbl = stargazer(as.data.frame(df), summary.stat = c("mean", "median", "p25", "p75"), nobs = F,
                 covariate.labels=c("Change in NO2, 2013-2019 (ppb)",
